@@ -79,6 +79,7 @@ public final class OpenAICompatibleProvider: LLMProviderProtocol, Sendable {
 
         // 4. 返回异步流，由 URLSession.bytes 处理
         let session = self.urlSession
+        let finalRequest = request
         return AsyncThrowingStream<LLMChunk, Error> { continuation in
             let task = Task {
                 do {
@@ -88,7 +89,7 @@ public final class OpenAICompatibleProvider: LLMProviderProtocol, Sendable {
                         return
                     }
 
-                    let (asyncBytes, response) = try await session.bytes(for: request)
+                    let (asyncBytes, response) = try await session.bytes(for: finalRequest)
 
                     guard let httpResponse = response as? HTTPURLResponse else {
                         continuation.finish(throwing: LLMProviderError.invalidResponse("非 HTTP 响应"))
