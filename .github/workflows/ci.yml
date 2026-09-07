@@ -1,0 +1,60 @@
+name: StudyOS CI (macOS & iPadOS)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test on Cloud Mac (iPadOS Simulator)
+    runs-on: macos-14
+
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 选择 Xcode 版本
+        run: |
+          if [ -d "/Applications/Xcode_15.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_15.4.app
+          fi
+          xcodebuild -version
+
+      - name: 查看可用 iPad 模拟器设备
+        run: |
+          xcrun simctl list devices available | grep -E "iPad" || true
+
+      - name: 编译 StudyOS (iOS Simulator 目标)
+        run: |
+          xcodebuild build \
+            -scheme StudyOS \
+            -destination "generic/platform=iOS Simulator"
+
+      - name: 执行自动化测试套件 (iPad 模拟器运行)
+        run: |
+          # 自动选取系统中首个可用的 iPad 模拟器名称
+          DEVICE_NAME=$(xcrun simctl list devices available | grep -E "iPad" | head -n 1 | sed -E 's/^[[:space:]]+//; s/ \([A-F0-9-]+\)$//')
+          if [ -z "$DEVICE_NAME" ]; then
+            DEVICE_NAME="iPad (10th generation)"
+          fi
+          echo "Selected Test Device: $DEVICE_NAME"
+
+          xcodebuild test \
+            -scheme StudyOS \
+            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+            -resultBundlePath TestResults.xcresult
+
+      - name: 上传测试结果工件 (xcresult)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iPad-Test-Results
+          path: TestResults.xcresult
+          retention-days: 7
