@@ -146,35 +146,9 @@ public struct PDFKitPlatformBridge: UIViewRepresentable {
     }
 }
 
-#elseif canImport(AppKit)
-import AppKit
-
-/// macOS 备用桥接实现
-public struct PDFKitPlatformBridge: NSViewRepresentable {
-    @ObservedObject public var adapter: ReaderAdapter
-    public let documentURL: URL?
-    
-    public init(adapter: ReaderAdapter, documentURL: URL? = nil) {
-        self.adapter = adapter
-        self.documentURL = documentURL
-    }
-    
-    public func makeNSView(context: Context) -> PDFView {
-        let pdfView = PDFView()
-        pdfView.autoScales = true
-        adapter.pdfView = pdfView
-        if let url = documentURL, let doc = PDFDocument(url: url) {
-            pdfView.document = doc
-            adapter.pageCount = doc.pageCount
-        }
-        return pdfView
-    }
-    
-    public func updateNSView(_ nsView: PDFView, context: Context) {}
-}
 #else
 
-/// 跨平台降级视图（非 Apple GUI 环境）
+/// 跨平台降级视图（非 iOS/iPadOS 原生环境）
 public struct PDFKitPlatformBridge: View {
     @ObservedObject public var adapter: ReaderAdapter
     public let documentURL: URL?

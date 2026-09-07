@@ -37,34 +37,34 @@ jobs:
 
       - name: 编译 StudyOS (iOS Simulator 目标)
         run: |
-          DEVICE_NAME=$(xcrun simctl list devices available | grep -E "iPad" | head -n 1 | sed -E 's/^[[:space:]]+//; s/ \([A-F0-9-]+\)$//')
-          if [ -z "$DEVICE_NAME" ]; then
-            DEVICE_NAME="iPad (10th generation)"
-          fi
-          echo "Selected Device for Build: $DEVICE_NAME"
-
           SCHEME=$(xcodebuild -list -json | jq -r '.project.schemes[0] // .workspace.schemes[0] // "StudyOS"')
           echo "Selected Scheme for Build: $SCHEME"
           xcodebuild build \
             -scheme "$SCHEME" \
-            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
             CODE_SIGNING_ALLOWED=NO
 
       - name: 执行自动化测试套件 (iPad 模拟器运行)
         run: |
-          # 自动选取系统中首个可用的 iPad 模拟器名称
-          DEVICE_NAME=$(xcrun simctl list devices available | grep -E "iPad" | head -n 1 | sed -E 's/^[[:space:]]+//; s/ \([A-F0-9-]+\)$//')
-          if [ -z "$DEVICE_NAME" ]; then
-            DEVICE_NAME="iPad (10th generation)"
-          fi
-          echo "Selected Test Device: $DEVICE_NAME"
+          # 自动精确提取系统中首个可用 iPad 模拟器的 UUID
+          DEVICE_ID=$(xcrun simctl list devices available | grep -E "iPad" | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -n 1)
+          echo "Selected Test Device UDID: $DEVICE_ID"
 
           SCHEME=$(xcodebuild -list -json | jq -r '.project.schemes[0] // .workspace.schemes[0] // "StudyOS"')
           echo "Selected Scheme for Test: $SCHEME"
 
+          if [ -n "$DEVICE_ID" ]; then
+            DESTINATION="platform=iOS Simulator,id=$DEVICE_ID"
+          else
+            DESTINATION="platform=iOS Simulator,name=iPad (10th generation)"
+          fi
+          echo "Selected Destination for Test: $DESTINATION"
+
           xcodebuild test \
             -scheme "$SCHEME" \
-            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+            -sdk iphonesimulator \
+            -destination "$DESTINATION" \
             -resultBundlePath TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO
 

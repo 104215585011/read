@@ -10,6 +10,7 @@ import PencilKit
 
 /// ReaderAdapter 核心通信协议 (UIREV-01, UIREV-03, UIREV-04)
 /// 用于解耦 SwiftUI 声明式状态与底层的 PDFKit / PencilKit 命令式渲染
+@MainActor
 public protocol ReaderAdapterProtocol: AnyObject, Sendable {
     // 状态与属性
     var readerSessionID: String { get }
