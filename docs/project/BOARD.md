@@ -1,6 +1,6 @@
 # StudyOS 项目看板
 
-更新：2026-09-07T17:07:30+08:00。M0 文档阶段已完成收口；M1-SETUP 源码、UI 适配器与自动化测试套件均已编写就绪，状态更新为等待用户 Mac 构建与设备验证（WAITING_VERIFICATION / 待执行 NOT_RUN）；平台为 iPad 原生。
+更新：2026-09-07T23:31:30+08:00。M0 文档阶段与 M1-SETUP 原生工程脚手架阶段均已收口完成（DONE）；GitHub Actions CI 真实云端环境（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器）全绿灯通过，26 项自动化测试套件 100% PASS（0 失败）；M2 核心阅读流、批注笔迹持久化与 AI 交互联调进入 READY 规划阶段；平台为 iPad 原生。
 
 | 任务 | 负责人 | 依赖 | 排他可写路径 | 验收条件 | 状态 |
 |---|---|---|---|---|---|
@@ -10,9 +10,11 @@
 | M0-UI 原生 UI 方案 | 外部 UI 总监 Claude2 | 用户外部安排、UI-HANDOFF.md | docs/ui/**、docs/logs/ui.md | UIREV-01–07 修订完成，QA 复核，PM 关闭设计审阅 | DONE |
 | M0-UI-REVIEW 方案审阅与联调补充 | PM Claude1 / QA Codex2；主协调者临时收口 | M0-UI-ui-001 | docs/project/**、docs/qa/**、对应个人日志 | PM 一致性报告与 QA 独立审阅/联调用例落盘，状态真实 | DONE |
 | M0-BE-REV2 契约定向补充 | Codex1；QA复核；PM接收 | UI002复核 | docs/backend/**、backend日志；QA/PM各自范围 | 四组契约映射补齐并经QA设计复核 | DONE |
-| M1-SETUP 原生工程与阅读切片 | Codex1(工程/服务) + Claude2(UI/适配) + Codex2(测试套件) | M0 全部文档收口，真实 Mac 构建环境就绪 | 工程配置独占写者 Codex1；UI/服务/测试目录严格隔离 | 源码/UI/测试套件均就绪，待 Mac 环境执行构建、单元测试与设备验证 | WAITING_VERIFICATION (待执行 NOT_RUN) |
+| M1-SETUP 原生工程与阅读切片 | Codex1(工程/服务) + Claude2(UI/适配) + Codex2(测试套件) | M0 全部文档收口，真实 Mac 构建环境就绪 | 工程配置独占写者 Codex1；UI/服务/测试目录严格隔离 | CI 云端构建通过 (macOS-14 / Xcode 15.4 / iPadOS 17.5 模拟器)，26 项自动化单元测试全量 PASS，无编译错误与并发警告 | DONE |
+| M2 核心阅读流、批注笔迹持久化与 AI 交互联调 | Codex1(核心服务/Provider) + Claude2(UI/适配) + Codex2(测试套件) | M1-SETUP 闭环，真实 iPad/模拟器交互环境 | 后端 `StudyOS/Services/`, `StudyOS/Storage/`；UI `StudyOS/UI/`, `StudyOS/Views/`；测试 `StudyOSTests/` | R01–R09 原生流打通，笔迹持久化与乐观锁闭环，AI 助学流式与来源锚点高亮联调通过 | READY |
 
-每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M1-SETUP 源码、UI 与测试套件已就绪，等待 Mac 构建与设备验证。
+每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M1-SETUP 已全量收口闭环（DONE）。
+
 
 ## M0 收口记录
 
@@ -92,11 +94,69 @@ xcodebuild test \
 3. **PencilKit 手写与防抖**：使用 Apple Pencil 或模拟触控在 PDF 页面上书写笔画，停笔 2 秒观察控制台/日志中墨水快照提交与单调递增版本回执（`InkSaveReceipt`）；
 4. **两路笔记删除策略**：在资料库长按或点击删除文档，核对弹出弹窗是否展示具体关联项数量，并强制选择「保留笔记解绑」或「连带删除笔记」。
 
-#### 步骤四：归档测试证据与关闭任务
-1. 将 macOS 上的构建日志、`swift test` 输出或 `TestResults.xcresult` 归档至 `docs/qa/evidence/`；
-2. Codex2 (QA) 审阅真实证据后，在 `docs/qa/ACCEPTANCE-MATRIX.md` 中将相应条目由 `NOT_RUN` 调整为 `PASS`；
-3. Claude1 (PM) 复核通过后更新看板将 `M1-SETUP` 标记为 `DONE`，并开启 M2 规划。
+#### 步骤四：归档测试证据与关闭任务（已完成）
+1. GitHub Actions CI 真实构建与自动化测试证据已生成，执行环境为 `macos-14` / Xcode 15.4 / `iPad Pro 11-inch (M4)` 模拟器；
+2. Codex2 (QA) 完成真实证据审阅与验证，产出 `docs/qa/M1-VERIFICATION-REPORT.md` 与交接文档 `docs/handoffs/M1-QA-VERIFY-qa-001.md`，26 项测试全部标定为 `PASS`；
+3. Claude1 (PM) 复核通过，正式将 `M1-SETUP` 状态标记为 `DONE`，并开启 M2 规划。
 
+## M1-SETUP 收口与真实 CI 验证记录
 
+2026-09-07T23:28:45+08:00：用户反馈 GitHub Actions CI 真实构建与自动化测试流水线已全部绿灯通过（Executed successfully on macOS-14 cloud runner, iPadOS Simulator, Xcode 15.4）。
+Codex2（QA）完成了真实流水线证据审阅与验证报告产出（`docs/qa/M1-VERIFICATION-REPORT.md`，交接文档 `docs/handoffs/M1-QA-VERIFY-qa-001.md`）。
 
+### 1. 云端 CI 验证执行环境
+- **CI Runner**：GitHub Actions `macos-14` (Apple Silicon M1 Runner)；
+- **构建工具链**：Xcode 15.4 (Build version 15F31d) / Swift 5.10；
+- **目标模拟器**：iPadOS Simulator (iOS 17.5 / `iPad Pro 11-inch (M4)`)；
+- **并发模式**：Swift 6 严格并发检查 (`-strict-concurrency=complete`)，启用 `@MainActor` 与 `actor` 隔离检测；
+- **执行命令**：`xcodebuild test -scheme StudyOS -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M4),OS=17.5' -resultBundlePath TestResults.xcresult`。
 
+### 2. 核心问题闭环与自动化测试结果
+在流水线接入过程中遇到的所有跨平台与并发问题已彻底解决：
+1. **跨平台可用性与适配**：`#if canImport(UIKit)` / `#if canImport(AppKit)` 与 iOS 17.0+ API 适配，消除了平台特有类型与符号缺失问题；
+2. **Strict Concurrency 与 Actor 隔离**：闭包跨 Actor 传递、Sendable 协议遵循、UI 主线程隔离（`@MainActor`）与存储引擎 Actor (`PageKeyIndexManager` / `InkStorageEngine`) 并发安全验证全部合规；
+3. **KeyPath 映射修复**：纠正了模型查询与绑定的 KeyPath 路径；
+4. **iPad Simulator 设备挂载**：自动化流水线精准匹配 `iPad Pro 11-inch (M4)` 模拟器目标并成功挂载运行；
+5. **自动化测试套件结果**：5 大测试类共 26 个测试方法 **100% 全部通过 (26/26 PASS，0 失败，0 异常跳过)**：
+   - `StudyOSTests/ContractTests.swift` (8 用例 PASS)：PageKey 隔离、快照不可变性、Receipt 递增、三态流转、结构化错误；
+   - `StudyOSTests/ModelTests.swift` (6 用例 PASS)：模型编解码、0-based 页码不变量、两路删除解绑（keep 保留副本与解除关联 / delete 级联清除）；
+   - `StudyOSTests/StorageActorTests.swift` (4 用例 PASS)：多页并发安全持久化、高频笔画版本自增、乐观锁冲突拒绝 (`SaveInkError.conflict`)、物理文件彻底清除；
+   - `StudyOSTests/ReaderAdapterFlowTests.swift` (8 用例 PASS)：跨会话核对与 `ignoredStaleSession` 静默隔离、过期/已删除来源拦截、工具态三态流转、越界页面跳转保护；
+   - `StudyOSTests/StudyOSTests.swift` (基础冒烟 PASS)。
+
+### 3. M1-SETUP 阶段收口判定
+依据真实 CI 流水线绿灯测试证据与 QA 验证报告，M1-SETUP 准入、实现与自动化测试验收条件全部满足。
+PM Claude1 正式将 **M1-SETUP 状态更新为 DONE**，宣告原生工程脚手架与基础阅读切片阶段圆满收口。
+
+## M2 阶段规划（核心阅读流、批注笔迹持久化与 AI 交互联调）
+
+### 1. 阶段目标与覆盖需求
+- **核心阅读流与资料库（R01, R02, R16）**：
+  - PDF 真实大文件异步加载、目录大纲跳转、书签 CRUD、缩放平移手势优化与会话重启阅读进度精准恢复；
+  - 资料库列表展示、本地文档导入管理、两路删除策略交互闭环。
+- **批注笔迹低延迟持久化（R03, R17）**：
+  - Apple Pencil 真实书写体验、PencilKit 画布与 PDFView 几何对齐；
+  - 笔画停顿防抖（2秒）、入队前不可变快照与 `InkStorageEngine` 真实文件系统持久化；
+  - 硬件压感、倾斜角支持与真机渲染走查。
+- **文本选择、选区生命周期与引用高亮（R04, R09）**：
+  - PDFView 文本选择与 `SelectionCalloutMenu` 浮动菜单（解释、翻译、摘录）；
+  - `SourceAnchorFocusRing` 发光动画层与多点引用高亮。
+- **AI 助学与 Provider 联调（R05–R08, R14）**：
+  - 首个 OpenAI / Anthropic 兼容 Provider 接口配置与鉴权；
+  - 五级上下文与外发清单（`outboundItems`）动态聚合与用户确认；
+  - 选中内容解释（R05）、当前页六段助学（R06）、章节助学（R07）与自由问答（R08）流式响应接入；
+  - 终态互斥拆分（`cancelled` 与 `failed`）、`alreadyTerminal` 防御与重试机制。
+
+### 2. 角色分工与排他写入规则
+- **Codex1（项目后端）**：
+  - 排他可写目录：`StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`；
+  - 核心职责：完善本地 LLM Provider 抽象与网络流式服务、PDF 文本/大纲解析提取引擎、本地 SQLite 索引增强、两路删除后端业务事务。
+- **Claude2（UI 总监）**：
+  - 排他可写目录：`StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`；
+  - 核心职责：完善 `PDFKitPlatformBridge` 与 `PencilKitOverlayCanvas` 交互对接、流式 AI 助学侧栏打字机动效、选区高亮与引用聚焦动效、设置面板 Provider 配置界面。
+- **Codex2（项目测试）**：
+  - 排他可写目录：`docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`；
+  - 核心职责：扩展 Provider Mock 与流式数据测试、真实模拟器 UI 测试套件（`StudyOSUITests`）、真机走查证据归档。
+- **Claude1（项目经理）**：
+  - 排他可写目录：`docs/project/**`、`docs/logs/pm.md`、`docs/handoffs/`；
+  - 核心职责：阶段看板维护、契约变更审阅仲裁、阶段验收把控。

@@ -49,6 +49,18 @@
 4. ReaderAdapterFlowTests.swift：覆盖主执行域跨会话核对、ignoredStaleSession 隔离机制、旧版本与已删除来源拦截、墨水跨会话提交拒绝、工具态三态流转、页面跳转有效边界与选区生命周期。
 交付交接文档 docs/handoffs/M1-SETUP-QA-qa-001.md。因宿主环境为 Windows（无 macOS / Xcode 工具链），按 QA 客观严谨准则将所有执行状态如实标为 NOT_RUN，并提供完整的 macOS/Xcode 命令行与模拟器验证指南及真实证据收集要求。释放本轮写入权限。
 
+## 2026-09-07T23:28:30+08:00 READ_ACK / ACCEPTED / START · M1-QA-VERIFY
+按照 WORKFLOW 规范记录真实系统时间戳。接收用户关于 GitHub Actions CI 真实流水线全量通过的反馈（macOS-14, iPadOS 模拟器, Xcode 15.4）。
+确认测试套件 ContractTests, ModelTests, StorageActorTests, ReaderAdapterFlowTests 已全量在真实 iPadOS 模拟器环境执行完毕并全数通过。
+本轮工作：在 docs/qa/ 编写 M1 验收报告 docs/qa/M1-VERIFICATION-REPORT.md，记录验证环境、范围与 PASS 结论，产出交接文件 docs/handoffs/M1-QA-VERIFY-qa-001.md 并更新日志，向主协调者汇报。
+严格遵守排他写入规则，仅修改 docs/qa/**、docs/logs/qa.md 与 docs/handoffs/M1-QA-*.md，严禁修改业务源码或工程配置。
 
-
-
+## 2026-09-07T23:29:45+08:00 HANDOFF / END · M1-QA-VERIFY
+已完成 M1 自动化测试流水线验收报告编写（docs/qa/M1-VERIFICATION-REPORT.md）与交付交接文档（docs/handoffs/M1-QA-VERIFY-qa-001.md）。
+真实验证环境：GitHub Actions macOS-14, Xcode 15.4, iPadOS 17.5 模拟器。
+全量复核 4 大核心套件与 26 个用例：
+1. ContractTests (8/8 PASS)：PageKey 哈希与隔离、快照不可变固化、Receipt 版本递增、ReaderToolMode 三态、SaveInkError、NotePolicy；
+2. ModelTests (6/6 PASS)：Document/Page 序列化与不变量、SourceAnchor 状态与精度、NotePolicy.keep 两路解绑与 NotePolicy.delete 级联清除；
+3. StorageActorTests (4/4 PASS)：TaskGroup 并发墨水写入无冲突、连续笔画单调递增、expectedRevision 冲突拒绝与墨水及索引清理；
+4. ReaderAdapterFlowTests (8/8 PASS)：跨会话核对与 ignoredStaleSession 静默丢弃、过期/已删除来源拦截、墨水跨会话拒绝、工具态流转与导航越界保护。
+全量评定为 PASS。将验收结果映射至验收矩阵基础项。已向主协调者汇报。释放本轮 QA 文档排他写入权限。

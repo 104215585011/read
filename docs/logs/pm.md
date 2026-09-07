@@ -32,6 +32,8 @@
 - 2026-09-07T17:06:30+08:00 | READ_ACK | Claude1 / 项目经理 | M1-SETUP-REVIEW | 已读 M1-SETUP-BE-backend-001.md、M1-SETUP-UI-ui-001.md、M1-SETUP-QA-qa-001.md、BOARD.md、PLAN.md。确认 Codex1（后端/工程骨架）、Claude2（原生 UI 切片与适配器）、Codex2（自动化测试套件）均已按排他目录分工完成源码编写与交接。
 - 2026-09-07T17:07:30+08:00 | UPDATE | Claude1 / 项目经理 | M1-SETUP-REVIEW | 更新 docs/project/BOARD.md：记录 M1-SETUP 源码、UI 适配器与自动化测试套件均已就绪。状态更新为等待用户 Mac 构建与设备验证（WAITING_VERIFICATION / 待执行 NOT_RUN）。明确下一步验收路径与指令（Swift PM 单元测试、Xcode 模拟器与真机验证）。向主协调者汇报。释放本轮 PM 编辑。
 
-
-
+- 2026-09-07T23:30:15+08:00 | READ_ACK | Claude1 / 项目经理 | M1-SETUP-CLOSE | 确认收到用户反馈及 QA 验收交接（docs/handoffs/M1-QA-VERIFY-qa-001.md、docs/qa/M1-VERIFICATION-REPORT.md）：GitHub Actions CI 真实云端流水线已全量绿灯通过（macOS-14, Xcode 15.4, iPadOS 17.5 Simulator, 26/26 测试通过）。重读 AGENTS.md、Claude1-PM.md、WORKFLOW.md、BOARD.md、PLAN.md、M1-SETUP-BE-backend-001.md、M1-SETUP-UI-ui-001.md、M1-SETUP-QA-qa-001.md。
+- 2026-09-07T23:30:15+08:00 | START | M1-SETUP-CLOSE | 启动 M1-SETUP 验收收口与交接。独占维护 docs/project/**、docs/logs/pm.md、docs/handoffs/M1-CLOSE-pm-*.md。严禁修改业务源码或他人专有目录。更新 BOARD.md 状态至 DONE，明确 M2 规划，产出 M1-CLOSE-pm-001.md。
+- 2026-09-07T23:34:10+08:00 | UPDATE | Claude1 / 项目经理 | M1-SETUP-CLOSE | 更新 docs/project/BOARD.md（M1-SETUP 状态更新为 DONE，记录 GitHub Actions CI 真实云端构建与 26 项单元测试全部通过，发布 M2 READY 规划）与 docs/project/PLAN.md。
+- 2026-09-07T23:34:30+08:00 | HANDOFF / END | Claude1 / 项目经理 | M1-SETUP-CLOSE | 产出收口与交接文件 docs/handoffs/M1-CLOSE-pm-001.md。M1-SETUP 原生工程脚手架、核心服务与 UI 切片阶段圆满收口。已向主协调者（parent）汇报。严禁修改且未修改业务源码。释放本轮 docs/project/** 编辑权限。
 
