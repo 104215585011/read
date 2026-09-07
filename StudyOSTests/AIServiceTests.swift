@@ -337,7 +337,7 @@ final class AIServiceTests: XCTestCase {
             LLMChunk(delta: "总结完毕。", finishReason: "stop", usageEstimate: 25)
         ]
 
-        mockProvider.streamHandler = { _, _ in
+        mockProvider.streamHandler = { @Sendable _, _ in
             AsyncThrowingStream { continuation in
                 for chunk in chunks {
                     continuation.yield(chunk)
@@ -388,7 +388,7 @@ final class AIServiceTests: XCTestCase {
 
     /// 测试流式异常失败：failed 终态确定，且与 cancelled 严格互斥，迟到 cancel 不得覆写
     func testAIServiceStreamingFailureTerminalExclusivity() async throws {
-        mockProvider.streamHandler = { _, _ in
+        mockProvider.streamHandler = { @Sendable _, _ in
             AsyncThrowingStream { continuation in
                 continuation.yield(LLMChunk(delta: "Partially emitted text."))
                 continuation.finish(throwing: LLMProviderError.serverError(statusCode: 503, "Service Unavailable"))
@@ -451,7 +451,7 @@ final class AIServiceTests: XCTestCase {
     /// 测试主动取消机制：cancel(requestID:attemptID:) 触发 cancelled 终态与二次取消拦截
     func testAIServiceCancelMidStreamExclusivity() async throws {
         // 创建一个会延迟吐字的流
-        mockProvider.streamHandler = { _, _ in
+        mockProvider.streamHandler = { @Sendable _, _ in
             AsyncThrowingStream { continuation in
                 let task = Task {
                     continuation.yield(LLMChunk(delta: "Chunk before cancel"))
@@ -530,7 +530,7 @@ final class AIServiceTests: XCTestCase {
 
     /// 测试 Task.cancel() 上层流取消级联
     func testAIServiceTaskCancellationTriggersCancelled() async throws {
-        mockProvider.streamHandler = { _, _ in
+        mockProvider.streamHandler = { @Sendable _, _ in
             AsyncThrowingStream { continuation in
                 let task = Task {
                     continuation.yield(LLMChunk(delta: "Chunk 1"))
@@ -572,7 +572,9 @@ final class AIServiceTests: XCTestCase {
                 let stream = try await service.generateStream(request: request, manifest: manifest)
                 for try await _ in stream {
                     // 读取首包后外部将取消
+                    try Task.checkCancellation()
                 }
+                try Task.checkCancellation()
                 return nil
             } catch {
                 return error
@@ -596,7 +598,7 @@ final class AIServiceTests: XCTestCase {
 
     /// 测试并发重复触发正在运行中的相同 attempt 被拒绝
     func testAIServiceDuplicateRunningAttemptRejected() async throws {
-        mockProvider.streamHandler = { _, _ in
+        mockProvider.streamHandler = { @Sendable _, _ in
             AsyncThrowingStream { continuation in
                 let task = Task {
                     try? await Task.sleep(nanoseconds: 200_000_000) // 200ms

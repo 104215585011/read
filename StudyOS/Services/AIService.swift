@@ -2,7 +2,7 @@ import Foundation
 
 /// 正在执行的 AI 尝试上下文状态
 private enum AttemptState: Sendable {
-    case running(task: Task<Void, Never>)
+    case running(task: Task<Void, Never>, continuation: AsyncThrowingStream<LLMChunk, Error>.Continuation)
     case terminal(AIResultStatus) // completed, failed, cancelled
 }
 
@@ -100,10 +100,13 @@ public actor AIService: AIServiceProtocol {
                 }
             }
 
-            self.registerAttempt(key: key, task: streamingTask)
+            self.registerAttempt(key: key, task: streamingTask, continuation: continuation)
 
             continuation.onTermination = { @Sendable _ in
                 streamingTask.cancel()
+                Task {
+                    await self.handleStreamTermination(key: key)
+                }
             }
         }
     }
@@ -121,9 +124,10 @@ public actor AIService: AIServiceProtocol {
         case .terminal:
             // 契约规定：已终态的取消属于 alreadyTerminal，不覆写已有 failed 或 completed
             return false
-        case .running(let task):
-            task.cancel()
+        case .running(let task, let continuation):
             attempts[key] = .terminal(.cancelled)
+            task.cancel()
+            continuation.finish(throwing: LLMProviderError.cancelled)
             return true
         }
     }
@@ -143,13 +147,24 @@ public actor AIService: AIServiceProtocol {
 
     // MARK: - 内部辅助方法
 
-    private func registerAttempt(key: String, task: Task<Void, Never>) {
-        // 如果外部已标记取消，则直接 cancel task
+    private func registerAttempt(key: String, task: Task<Void, Never>, continuation: AsyncThrowingStream<LLMChunk, Error>.Continuation) {
+        // 如果外部已标记取消，则直接 cancel task 与 continuation
         if let existing = attempts[key], case .terminal(.cancelled) = existing {
             task.cancel()
+            continuation.finish(throwing: LLMProviderError.cancelled)
             return
         }
-        attempts[key] = .running(task: task)
+        attempts[key] = .running(task: task, continuation: continuation)
+    }
+
+    private func handleStreamTermination(key: String) {
+        guard let state = attempts[key] else { return }
+        switch state {
+        case .running:
+            attempts[key] = .terminal(.cancelled)
+        case .terminal:
+            break
+        }
     }
 
     private func markTerminal(key: String, status: AIResultStatus) {

@@ -107,13 +107,15 @@ public struct ContextAggregator: Sendable {
         case .document:
             // 全文大纲与概要聚合 (Level 4)
             if !chapters.isEmpty {
+                let chapterPages = Array(Set(chapters.flatMap { $0.startPageIndex0...$0.endPageIndex0 })).sorted()
+                pageCoverage.append(contentsOf: chapterPages)
                 let outlineSummary = chapters.map { "- \($0.title) (第 \($0.startPageIndex0 + 1) ~ \($0.endPageIndex0 + 1) 页)" }.joined(separator: "\n")
                 let digest = computeDigest(outlineSummary)
                 let item = OutboundItem(
                     kind: .documentText,
                     purpose: .generation,
                     sourceIDs: ["outline_summary"],
-                    pageCoverage: Array(Set(chapters.flatMap { $0.startPageIndex0...$0.endPageIndex0 })).sorted(),
+                    pageCoverage: chapterPages,
                     payloadDigest: digest,
                     byteCount: outlineSummary.utf8.count,
                     characterCount: outlineSummary.count,

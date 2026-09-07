@@ -89,3 +89,22 @@
    - SourceAnchor 有效性校验过滤 (validateSources：availability、存在性、版本一致性、页码边界越界)；
 3. 严格遵循纯原生与 Swift 5.10 / 6 并发安全（@Sendable、Actor 隔离、无 Task 内部 self 捕获、无死锁）；
 4. 产出交接文件 docs/handoffs/M2-QA-qa-001.md。当前宿主为 Windows，严格标为 NOT_RUN，绝不虚报 PASS。已向主协调者汇报。释放本轮 QA 专有写入权限。
+
+## 2026-09-08T00:33:00+08:00 READ_ACK / ACCEPTED / START · M2-QA-FIX
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收主协调者消除 StudyOSTests 中 Swift Concurrency 警告的指令。
+已读取 AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md。
+本轮任务：
+1. 修复 StudyOSTests/ReaderAdapterFlowTests.swift 中 class ReaderAdapterFlowTests 的 @MainActor 与 nonisolated superclass XCTestCase 继承层级隔离冲突警告，移除类级 @MainActor 并下沉至各测试方法；
+2. 修复 StudyOSTests/AIServiceTests.swift 中 mockProvider.streamHandler 闭包转换至 @Sendable 的 5 处数据竞争警告，显式增加 @Sendable 标注；
+3. 检查 StorageActorTests 等其他测试文件，确保 Swift 6 并发纯净零警告；
+4. 编写交接文件 docs/handoffs/M2-QA-FIX-qa-001.md 并追加本日志；
+严格遵守排他写入规则，仅修改专有测试目录 StudyOSTests/**、docs/qa/**、docs/logs/qa.md 与 docs/handoffs/M2-QA-FIX-*.md，严禁修改业务源码或工程配置。
+
+## 2026-09-08T00:36:00+08:00 HANDOFF / END · M2-QA-FIX
+完成 StudyOSTests 严格并发检查警告消除与测试加固：
+1. 修复 StudyOSTests/ReaderAdapterFlowTests.swift：移除类声明前的 @MainActor，并在 8 个具体测试方法上显式标注 @MainActor，彻底解决与 nonisolated superclass XCTestCase 的继承隔离冲突；
+2. 修复 StudyOSTests/AIServiceTests.swift：为 mockProvider.streamHandler 的 5 处测试闭包赋值显式增加 @Sendable 标注（@Sendable _, _ in），消除非 Sendable 闭包向 Sendable 函数类型转换可能引入数据竞争的警告；
+3. 优化 AIServiceTests 中 testAIServiceTaskCancellationTriggersCancelled：在消费端 consumerTask 内部增加显式 try Task.checkCancellation()，确保 Task 被外部取消时确定性抛出并捕获 CancellationError，使断言稳定通过；
+4. 加固 StudyOSTests/StorageActorTests.swift：在 testConcurrentInkSavingAcrossPages 中预先提取 Sendable engine 局部引用，彻底杜绝 group.addTask 闭包对非 Sendable self 的跨并发域捕获；
+5. 全量检查 ContractTests、ModelTests、StudyOSTests，确认无其他并发警告隐患；
+6. 交付交接文档 docs/handoffs/M2-QA-FIX-qa-001.md。全量真机执行状态依据规则客观标注为 NOT_RUN。已向主协调者汇报。释放本轮 QA 专有写入权限。

@@ -34,6 +34,10 @@ final class StorageActorTests: XCTestCase {
         let docID = "doc_concurrent"
         let revision = 1
         let pageCount = 5
+        guard let engine = self.inkStorageEngine else {
+            XCTFail("Storage engine not initialized")
+            return
+        }
 
         // 并发触发 5 个不同页面的笔迹保存
         let results = await withTaskGroup(
@@ -51,7 +55,7 @@ final class StorageActorTests: XCTestCase {
                 )
 
                 group.addTask {
-                    let res = await self.inkStorageEngine.saveInk(snapshot: snapshot)
+                    let res = await engine.saveInk(snapshot: snapshot)
                     return (p, res)
                 }
             }

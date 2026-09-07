@@ -47,11 +47,11 @@ final class MockCoreServiceForAdapter: CoreServiceProtocol, @unchecked Sendable 
 
 /// ReaderAdapter 流程与跨会话核对测试套件 (UIREV-01, UIREV-03, UIREV-04)
 /// 严格依据 M0 验收矩阵 (ACCEPTANCE-MATRIX.md: R02, R03, R09) 与联调用例 (UI-INTEGRATION-CASES.md: UI-T01, UI-T04, UI-T05, UI-T07)
-@MainActor
 final class ReaderAdapterFlowTests: XCTestCase {
 
     // MARK: - 1. 跨文档/会话隔离测试 (ignoredStaleSession, UIREV-04, UI-T07)
 
+    @MainActor
     func testIgnoredStaleSessionWhenTargetDocumentDiffers() async {
         let mock = MockCoreServiceForAdapter()
         let currentDocID = "doc_active_session"
@@ -91,6 +91,7 @@ final class ReaderAdapterFlowTests: XCTestCase {
         XCTAssertEqual(adapter.currentPageIndex0, 0, "当前页面索引必须保持不变，严禁乱跳")
     }
 
+    @MainActor
     func testIgnoredStaleSessionWhenDocumentRevisionDiffers() async {
         let mock = MockCoreServiceForAdapter()
         let currentDocID = "doc_version_check"
@@ -130,6 +131,7 @@ final class ReaderAdapterFlowTests: XCTestCase {
 
     // MARK: - 2. 旧版本来源与失效来源拦截测试 (UIREV-01, UI-T07)
 
+    @MainActor
     func testStaleReferenceHandling() async {
         let mock = MockCoreServiceForAdapter()
         var receivedToast: String?
@@ -163,6 +165,7 @@ final class ReaderAdapterFlowTests: XCTestCase {
         XCTAssertEqual(adapter.currentPageIndex0, 0)
     }
 
+    @MainActor
     func testUnavailableHandlingForDeletedDocument() async {
         let mock = MockCoreServiceForAdapter()
         var receivedToast: String?
@@ -199,6 +202,7 @@ final class ReaderAdapterFlowTests: XCTestCase {
 
     // MARK: - 3. 墨水保存会话隔离测试 (UIREV-03, UI-T05)
 
+    @MainActor
     func testInkFlushMismatchedSessionRejection() async {
         let mock = MockCoreServiceForAdapter()
         let adapter = ReaderAdapter(
@@ -233,6 +237,7 @@ final class ReaderAdapterFlowTests: XCTestCase {
 
     // MARK: - 4. 工具态管理与切换测试 (UIREV-04)
 
+    @MainActor
     func testToolModeTransitions() {
         let mock = MockCoreServiceForAdapter()
         let adapter = ReaderAdapter(
@@ -258,6 +263,7 @@ final class ReaderAdapterFlowTests: XCTestCase {
 
     // MARK: - 5. 页面导航边界与选区管理测试 (UIREV-01, UI-T03)
 
+    @MainActor
     func testGoToPageBoundaryChecks() {
         let mock = MockCoreServiceForAdapter()
         var lastChangedPage: Int?
@@ -298,6 +304,7 @@ final class ReaderAdapterFlowTests: XCTestCase {
         XCTAssertNotNil(toastMessage)
     }
 
+    @MainActor
     func testSelectionLifecycle() {
         let mock = MockCoreServiceForAdapter()
         var reportedAnchor: SourceAnchor?
