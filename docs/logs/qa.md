@@ -37,4 +37,18 @@
 完成 UI v0.3-aligned-be-rev2 规范定向复核。逐项审查确认 UIREV-03（PageKey与Receipt闭环、快照固化、会话隔离）、UIREV-04（主执行域三重会话核对、ignoredStaleSession静默丢弃、重点项复用、PDF/屏幕点分工）、UIREV-05（cancelled与failed互斥拆分、禁调cancelAI、alreadyTerminal、新attemptID与重验Manifest）、UIREV-06（outboundItems动态聚合、四项Inclusion、混合图手写披露、全批次与embedding首次确认重签、删除两路notePolicy与cleanupPending真实状态）及文案/字段同步全部达成契约闭环，全部评定为 CLOSED。
 已生成定向复核报告 docs/qa/M0-UI-RECHECK-003.md 与交接文件 docs/handoffs/M0-QA-REV3-qa-001.md。建议 PM 将 M0-UI 状态由 CHANGES_REQUESTED 调整为 DONE，并收口 M0。全部真实运行与真机测试严格保持 NOT_RUN，释放本轮 QA 文档排他写入权限。
 
+## 2026-09-07T17:02:25+08:00 READ_ACK / ACCEPTED / START · M1-SETUP-QA
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收 Codex1 (后端) 与 Claude2 (UI) 分别交付的 M1-SETUP 核心服务与客户端 UI 切片。已读取 AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、docs/project/UI-V03-HANDOFF.md、docs/backend/CONTRACT-v0.1-draft.md (0.1-draft / M0-BE-REV2) 以及 docs/handoffs/M0-UI-ui-003.md。
+本阶段任务：在专有测试目录 StudyOSTests/ 编写详尽单元测试与契约验证套件（ContractTests.swift, ModelTests.swift, StorageActorTests.swift, ReaderAdapterFlowTests.swift），严格验证契约不变量与行为逻辑。排他维护 docs/qa/**、StudyOSTests/**、docs/logs/qa.md 与 docs/handoffs/M1-SETUP-QA-*.md，严禁修改业务源码目录 StudyOS/**、docs/ui/**、docs/backend/** 或工程配置文件。真实真机与编译测试客观标注。
+
+## 2026-09-07T17:06:15+08:00 HANDOFF / END · M1-SETUP-QA
+完成专有测试目录 StudyOSTests/ 下 4 大核心测试套件的编写交付：
+1. ContractTests.swift：覆盖 PageKey 唯一哈希/跨维隔离/storageKey 格式规范、InkSaveSnapshot 入队前不可变固化、InkSaveReceipt 单调递增、ReaderToolMode 三态枚举、SaveInkError 与 NotePolicy 结构化错误契约；
+2. ModelTests.swift：覆盖 Document、Page (0-based 规范与 ID 格式)、SourceAnchor (page/region 与 active/documentDeleted) 及 Note 在两路删除策略（keep: documentID/chapterID 置空且 availability 为 documentDeleted 保留文本/图片副本；delete: 连带彻底删除）下的序列化与数据完整性验证；
+3. StorageActorTests.swift：覆盖 Actor 隔离下的并发多页墨水持久化、连续快速笔画版本递增 (0->1->2->3)、expectedRevision 版本冲突检测 (.conflict) 与墨水索引及文件彻底清理；
+4. ReaderAdapterFlowTests.swift：覆盖主执行域跨会话核对、ignoredStaleSession 隔离机制、旧版本与已删除来源拦截、墨水跨会话提交拒绝、工具态三态流转、页面跳转有效边界与选区生命周期。
+交付交接文档 docs/handoffs/M1-SETUP-QA-qa-001.md。因宿主环境为 Windows（无 macOS / Xcode 工具链），按 QA 客观严谨准则将所有执行状态如实标为 NOT_RUN，并提供完整的 macOS/Xcode 命令行与模拟器验证指南及真实证据收集要求。释放本轮写入权限。
+
+
+
 

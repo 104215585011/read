@@ -26,4 +26,12 @@
 - 2026-09-07T16:15:00.0000000+08:00 | ACCEPTED / REVIEW | M0-CLOSE | 审阅 QA 复核报告 docs/qa/M0-UI-RECHECK-003.md：UIREV-03–06 及关联文案全量 CLOSED，UI 设计与后端 0.1-draft / M0-BE-REV2 契约 100% 互洽闭环。更新 docs/project/BOARD.md（M0-UI 置为 DONE，M0 完整收口，M1-SETUP 置为 READY）与 docs/project/PLAN.md。
 - 2026-09-07T16:15:30.0000000+08:00 | HANDOFF / END | M0-CLOSE-PLAN | 产出收口与交接文件 docs/handoffs/M0-CLOSE-pm-001.md。M0 各交付物全部达成 DONE。明确 M1-SETUP 准入条件、单一工程配置写者（Codex1）、技术栈（SwiftUI + PDFKit + PencilKit）与目录分工。未编写产品代码，产品测试严格保持 NOT_RUN。接收方主协调者；释放本轮 docs/project/** 编辑权限。
 
+- 2026-09-07T16:52:21.0000000+08:00 | READ_ACK | Claude1 / 项目经理 | M1-SETUP-KICKOFF | 确认用户已批准 M1-SETUP 规划，GitHub 远程仓库已绑定 (https://github.com/104215585011/read.git) 且完成 M0 基线推送。重读 AGENTS.md、Claude1-PM.md、WORKFLOW.md、BOARD.md、PLAN.md。
+- 2026-09-07T16:52:21.0000000+08:00 | START | M1-SETUP-KICKOFF | 启动 M1-SETUP 阶段。更新 BOARD.md 将 M1-SETUP 置为 IN_PROGRESS。正式授权 Codex1 作为单一工程配置写者创建 Package.swift/工程结构及核心服务，随后授权 Claude2 编写 UI 切片。独占维护 docs/project/** 与 pm.md。不编写产品代码。
+- 2026-09-07T16:53:30.0000000+08:00 | UPDATE / HANDOFF | M1-SETUP-KICKOFF | docs/project/BOARD.md 已更新完成：M1-SETUP 正式置为 IN_PROGRESS。授权分工已明确（Codex1 单一工程配置写者与核心服务 -> Claude2 UI 切片 -> Codex2 验收准备）。已向主协调者汇报。释放本轮 PM 编辑。
+- 2026-09-07T17:06:30+08:00 | READ_ACK | Claude1 / 项目经理 | M1-SETUP-REVIEW | 已读 M1-SETUP-BE-backend-001.md、M1-SETUP-UI-ui-001.md、M1-SETUP-QA-qa-001.md、BOARD.md、PLAN.md。确认 Codex1（后端/工程骨架）、Claude2（原生 UI 切片与适配器）、Codex2（自动化测试套件）均已按排他目录分工完成源码编写与交接。
+- 2026-09-07T17:07:30+08:00 | UPDATE | Claude1 / 项目经理 | M1-SETUP-REVIEW | 更新 docs/project/BOARD.md：记录 M1-SETUP 源码、UI 适配器与自动化测试套件均已就绪。状态更新为等待用户 Mac 构建与设备验证（WAITING_VERIFICATION / 待执行 NOT_RUN）。明确下一步验收路径与指令（Swift PM 单元测试、Xcode 模拟器与真机验证）。向主协调者汇报。释放本轮 PM 编辑。
+
+
+
 
