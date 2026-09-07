@@ -37,11 +37,17 @@ jobs:
 
       - name: 编译 StudyOS (iOS Simulator 目标)
         run: |
+          DEVICE_NAME=$(xcrun simctl list devices available | grep -E "iPad" | head -n 1 | sed -E 's/^[[:space:]]+//; s/ \([A-F0-9-]+\)$//')
+          if [ -z "$DEVICE_NAME" ]; then
+            DEVICE_NAME="iPad (10th generation)"
+          fi
+          echo "Selected Device for Build: $DEVICE_NAME"
+
           SCHEME=$(xcodebuild -list -json | jq -r '.project.schemes[0] // .workspace.schemes[0] // "StudyOS"')
           echo "Selected Scheme for Build: $SCHEME"
           xcodebuild build \
             -scheme "$SCHEME" \
-            -destination "generic/platform=iOS Simulator" \
+            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
             CODE_SIGNING_ALLOWED=NO
 
       - name: 执行自动化测试套件 (iPad 模拟器运行)

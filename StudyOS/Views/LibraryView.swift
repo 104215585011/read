@@ -62,6 +62,7 @@ public struct LibraryView: View {
                 await viewModel.loadDocuments()
             }
             // 进入阅读器
+            #if os(iOS)
             .fullScreenCover(item: $activeDocumentForReading) { doc in
                 let readerVM = ReaderViewModel(
                     document: doc,
@@ -69,6 +70,7 @@ public struct LibraryView: View {
                 )
                 ReaderContainerView(viewModel: readerVM)
             }
+            #endif
             // 两路笔记删除影响预览与确认弹窗 (UIREV-06)
             .sheet(item: $viewModel.selectedDocumentForDeletion) { _ in
                 documentDeletionModal
