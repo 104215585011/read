@@ -110,7 +110,10 @@ public struct ReaderContainerView: View {
             Spacer()
             
             // 工具态显式切换 (纯阅读 / 文本选择 / 批注)
-            Picker("工具态", selection: $viewModel.adapter.currentToolMode) {
+            Picker("工具态", selection: Binding(
+                get: { viewModel.adapter.currentToolMode },
+                set: { viewModel.adapter.currentToolMode = $0 }
+            )) {
                 Text("阅读").tag(ReaderToolMode.reading)
                 Text("选词").tag(ReaderToolMode.textSelection)
                 Text("批注").tag(ReaderToolMode.annotation)

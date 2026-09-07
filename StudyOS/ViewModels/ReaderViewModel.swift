@@ -35,7 +35,7 @@ public final class ReaderViewModel: ObservableObject {
     // MARK: - 依赖
     public let document: Document
     public let coreService: CoreServiceProtocol
-    public let adapter: ReaderAdapter
+    public var adapter: ReaderAdapter
     
     // MARK: - 阅读器视图状态
     @Published public var snapshot: ReaderSnapshot?
