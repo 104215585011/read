@@ -347,12 +347,3 @@ public struct LibraryView: View {
     }
 }
 
-private extension Color {
-    static var systemBackground: Color {
-        #if canImport(UIKit)
-        return Color(UIColor.systemBackground)
-        #else
-        return Color.white
-        #endif
-    }
-}

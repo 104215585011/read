@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 /// StudyOS 设计系统令牌与主题规约 (Theme & Design Tokens)
 /// 遵循 PRD 学术极简主义哲学与 ARCHITECTURE-AND-FLOWS.md 规范
 public enum StudyTheme {
@@ -15,6 +19,15 @@ public enum StudyTheme {
         public static let success = Color(red: 0.020, green: 0.588, blue: 0.412) // #059669
         /// 警示玫红 (Warning Rose)
         public static let danger = Color(red: 0.882, green: 0.114, blue: 0.282) // #E11D48
+        
+        /// 统一跨平台系统背景色令牌
+        public static var systemBackground: Color {
+            #if canImport(UIKit)
+            return Color(uiColor: .systemBackground)
+            #else
+            return Color.white
+            #endif
+        }
         
         /// 阅读器底衬温润纸张色 (Warm Paper Background)
         public static let paperBackground = Color(red: 0.980, green: 0.973, blue: 0.961) // #FAF8F5
@@ -74,3 +87,11 @@ public enum StudyTheme {
         public static let focusPulseDuration: Double = 0.6
     }
 }
+
+// MARK: - 共享系统色彩扩展
+extension Color {
+    public static var systemBackground: Color {
+        StudyTheme.Colors.systemBackground
+    }
+}
+

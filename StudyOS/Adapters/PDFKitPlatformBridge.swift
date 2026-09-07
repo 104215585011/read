@@ -167,4 +167,21 @@ public struct PDFKitPlatformBridge: NSViewRepresentable {
     
     public func updateNSView(_ nsView: PDFView, context: Context) {}
 }
+#else
+
+/// 跨平台降级视图（非 Apple GUI 环境）
+public struct PDFKitPlatformBridge: View {
+    @ObservedObject public var adapter: ReaderAdapter
+    public let documentURL: URL?
+    
+    public init(adapter: ReaderAdapter, documentURL: URL? = nil) {
+        self.adapter = adapter
+        self.documentURL = documentURL
+    }
+    
+    public var body: some View {
+        Color.clear
+    }
+}
 #endif
+

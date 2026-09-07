@@ -31,11 +31,18 @@ jobs:
         run: |
           xcrun simctl list devices available | grep -E "iPad" || true
 
+      - name: 查看可用 Xcode Schemes 与配置
+        run: |
+          xcodebuild -list
+
       - name: 编译 StudyOS (iOS Simulator 目标)
         run: |
+          SCHEME=$(xcodebuild -list -json | jq -r '.project.schemes[0] // .workspace.schemes[0] // "StudyOS"')
+          echo "Selected Scheme for Build: $SCHEME"
           xcodebuild build \
-            -scheme StudyOS \
-            -destination "generic/platform=iOS Simulator"
+            -scheme "$SCHEME" \
+            -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: 执行自动化测试套件 (iPad 模拟器运行)
         run: |
@@ -46,10 +53,14 @@ jobs:
           fi
           echo "Selected Test Device: $DEVICE_NAME"
 
+          SCHEME=$(xcodebuild -list -json | jq -r '.project.schemes[0] // .workspace.schemes[0] // "StudyOS"')
+          echo "Selected Scheme for Test: $SCHEME"
+
           xcodebuild test \
-            -scheme StudyOS \
+            -scheme "$SCHEME" \
             -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
-            -resultBundlePath TestResults.xcresult
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: 上传测试结果工件 (xcresult)
         if: always()

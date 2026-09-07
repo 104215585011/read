@@ -401,13 +401,3 @@ public struct AISidebarView: View {
     }
 }
 
-// 跨平台适配系统背景色扩展
-private extension Color {
-    static var systemBackground: Color {
-        #if canImport(UIKit)
-        return Color(UIColor.systemBackground)
-        #else
-        return Color.white
-        #endif
-    }
-}
