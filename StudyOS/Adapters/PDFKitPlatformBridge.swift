@@ -59,6 +59,7 @@ public struct PDFKitPlatformBridge: UIViewRepresentable {
     }
     
     // MARK: - 协调者 (Coordinator)
+    @MainActor
     public final class Coordinator: NSObject {
         private let adapter: ReaderAdapter
         private var notificationTokens: [NSObjectProtocol] = []
@@ -77,11 +78,13 @@ public struct PDFKitPlatformBridge: UIViewRepresentable {
                 object: pdfView,
                 queue: .main
             ) { [weak self, weak pdfView] _ in
-                guard let self = self, let pdfView = pdfView,
-                      let doc = pdfView.document,
-                      let currentPage = pdfView.currentPage else { return }
-                let pageIndex0 = doc.index(for: currentPage)
-                self.adapter.updateCurrentPageFromScroll(pageIndex0: pageIndex0)
+                Task { @MainActor [weak self, weak pdfView] in
+                    guard let self = self, let pdfView = pdfView,
+                          let doc = pdfView.document,
+                          let currentPage = pdfView.currentPage else { return }
+                    let pageIndex0 = doc.index(for: currentPage)
+                    self.adapter.updateCurrentPageFromScroll(pageIndex0: pageIndex0)
+                }
             }
             notificationTokens.append(pageToken)
             
@@ -91,8 +94,10 @@ public struct PDFKitPlatformBridge: UIViewRepresentable {
                 object: pdfView,
                 queue: .main
             ) { [weak self, weak pdfView] _ in
-                guard let self = self, let pdfView = pdfView else { return }
-                self.handleSelectionChange(in: pdfView)
+                Task { @MainActor [weak self, weak pdfView] in
+                    guard let self = self, let pdfView = pdfView else { return }
+                    self.handleSelectionChange(in: pdfView)
+                }
             }
             notificationTokens.append(selToken)
         }

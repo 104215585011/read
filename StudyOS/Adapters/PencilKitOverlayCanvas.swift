@@ -42,6 +42,7 @@ public struct PencilKitOverlayCanvas: UIViewRepresentable {
     }
     
     // MARK: - 协调者与防抖持久化 (Coordinator & Debounce)
+    @MainActor
     public final class Coordinator: NSObject, PKCanvasViewDelegate {
         private let adapter: ReaderAdapter
         public var pageIndex0: Int
@@ -96,8 +97,8 @@ public struct PencilKitOverlayCanvas: UIViewRepresentable {
             
             // 4. 启动定时器执行异步持久化
             debounceTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
-                guard let self = self else { return }
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
                     let result = await self.adapter.flushInk(snapshot: snapshot)
                     if case .success(let receipt) = result {
                         self.currentRevision = receipt.savedRevision
