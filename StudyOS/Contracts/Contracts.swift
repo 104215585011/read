@@ -5,10 +5,12 @@ import Foundation
 //
 // 1. 核心协议 (Protocols):
 //    - ReaderAdapterProtocol: 客户端 UI/适配器通信协议 (UIREV-01, UIREV-03, UIREV-04)
-//    - CoreServiceProtocol: 核心聚合服务协议
+//    - CoreServiceProtocol: 核心聚合服务协议 (含 aiService 暴露)
 //    - ReaderCoreServiceProtocol: 阅读器定位与笔迹持久化协议
 //    - DocumentServiceProtocol: 文档生命周期与删除协议
 //    - NoteServiceProtocol: 笔记管理与归属维护协议
+//    - LLMProviderProtocol: 本地大模型流式 Provider 抽象协议 (SSE / Chunk / 结构化错误)
+//    - AIServiceProtocol: AI 助学核心服务协议 (流式生成 / 终态互斥 / 来源校验)
 //
 // 2. 领域记录与结构 (Domain Records & Structs):
 //    - Document: 文档元数据与状态

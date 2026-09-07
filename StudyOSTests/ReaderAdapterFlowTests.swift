@@ -19,6 +19,10 @@ final class MockCoreServiceForAdapter: CoreServiceProtocol, @unchecked Sendable 
         fatalError("NoteService not accessed in ReaderAdapter unit tests")
     }
 
+    var aiService: AIServiceProtocol {
+        fatalError("AIService not accessed in ReaderAdapter unit tests")
+    }
+
     func resolveSource(_ anchor: SourceAnchor) async -> SourceResolution {
         if let handler = resolveSourceHandler {
             return await handler(anchor)

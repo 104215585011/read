@@ -118,6 +118,37 @@ public struct AISidebarView: View {
     private var sixSectionStudyFeed: some View {
         ScrollView {
             LazyVStack(spacing: StudyTheme.Spacing.md) {
+                // 导学生成控制与状态横幅
+                if viewModel.isAIGenerating && selectedTab == .studyGuide {
+                    generatingBanner
+                } else if viewModel.currentAIStatus == .failed && selectedTab == .studyGuide {
+                    statusAlertBanner(
+                        title: "导学研读生成中断",
+                        message: viewModel.currentErrorMessage ?? "服务通信异常或格式校验未通过",
+                        isError: true
+                    )
+                } else if viewModel.currentAIStatus == .cancelled && selectedTab == .studyGuide {
+                    statusAlertBanner(
+                        title: "导学研读已取消",
+                        message: "读者已主动终止当前六段式导学生成任务",
+                        isError: false
+                    )
+                }
+                
+                // 实时生成的导学内容展示卡片（若已生成流式结果）
+                if let dynamicContent = viewModel.currentAIResult?.content, !dynamicContent.isEmpty {
+                    studyCard(
+                        title: "🤖 AI 实时精读导引",
+                        icon: "sparkles",
+                        color: StudyTheme.Colors.primary
+                    ) {
+                        Text(dynamicContent)
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                            .lineSpacing(4)
+                    }
+                }
+                
                 // ① 这一部分在讲什么
                 studyCard(
                     title: "① 这一部分在讲什么",
@@ -226,17 +257,22 @@ public struct AISidebarView: View {
                         }
                     }
                     
+                    // 生成中打字机动效与状态指示
                     if viewModel.isAIGenerating {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("AI 正在严谨研读并提取证据...")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                        .padding(.horizontal, StudyTheme.Spacing.md)
-                        .id("generating_indicator")
+                        generatingBanner
+                            .id("generating_indicator")
+                    } else if viewModel.currentAIStatus == .failed {
+                        statusAlertBanner(
+                            title: "AI 助学回答中断",
+                            message: viewModel.currentErrorMessage ?? "服务响应异常，已保留部分内容",
+                            isError: true
+                        )
+                    } else if viewModel.currentAIStatus == .cancelled {
+                        statusAlertBanner(
+                            title: "已主动终止生成",
+                            message: "读者已取消当前在途流式响应任务",
+                            isError: false
+                        )
                     }
                 }
                 .padding(StudyTheme.Spacing.md)
@@ -251,6 +287,103 @@ public struct AISidebarView: View {
         }
     }
     
+    // MARK: - 呼吸态生成指示条 (Breathing Indicator & Stop Button)
+    private var generatingBanner: some View {
+        HStack(spacing: 10) {
+            // 呼吸态光点
+            Circle()
+                .fill(StudyTheme.Colors.accent)
+                .frame(width: 8, height: 8)
+                .scaleEffect(viewModel.isAIGenerating ? 1.25 : 0.8)
+                .opacity(viewModel.isAIGenerating ? 1.0 : 0.4)
+                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: viewModel.isAIGenerating)
+            
+            ProgressView()
+                .scaleEffect(0.8)
+            
+            Text("AI 正在严谨研读并提取证据...")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            // 显式停止生成按钮
+            Button {
+                viewModel.stopAIGeneration()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 9))
+                    Text("停止生成")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(StudyTheme.Colors.danger.opacity(0.12))
+                .foregroundColor(StudyTheme.Colors.danger)
+                .cornerRadius(StudyTheme.Radius.pill)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, StudyTheme.Spacing.md)
+        .padding(.vertical, 8)
+        .background(Color.systemBackground)
+        .cornerRadius(StudyTheme.Radius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: StudyTheme.Radius.sm)
+                .stroke(StudyTheme.Colors.border, lineWidth: 1)
+        )
+    }
+    
+    // MARK: - 终态提示横幅（已失败 / 已取消 互斥呈现）
+    @ViewBuilder
+    private func statusAlertBanner(title: String, message: String, isError: Bool) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: isError ? "exclamationmark.triangle.fill" : "stop.circle.fill")
+                .foregroundColor(isError ? StudyTheme.Colors.danger : .secondary)
+                .font(.subheadline)
+                .padding(.top, 2)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(isError ? StudyTheme.Colors.danger : .primary)
+                Text(message)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            // 重试按钮（派发新 attemptID 并重新执行）
+            Button {
+                viewModel.retryLastAIAction()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.clockwise")
+                    Text("重试")
+                }
+                .font(.caption2)
+                .fontWeight(.medium)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(StudyTheme.Colors.primary.opacity(0.12))
+                .foregroundColor(StudyTheme.Colors.primary)
+                .cornerRadius(StudyTheme.Radius.pill)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(StudyTheme.Spacing.sm)
+        .background(isError ? StudyTheme.Colors.danger.opacity(0.06) : Color.gray.opacity(0.08))
+        .cornerRadius(StudyTheme.Radius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: StudyTheme.Radius.sm)
+                .stroke(isError ? StudyTheme.Colors.danger.opacity(0.2) : StudyTheme.Colors.border, lineWidth: 1)
+        )
+    }
+    
     // MARK: - 消息气泡与引用胶囊
     @ViewBuilder
     private func messageBubble(_ msg: AIMessageItem) -> some View {
@@ -258,16 +391,31 @@ public struct AISidebarView: View {
             HStack {
                 if msg.isUser { Spacer() }
                 
-                Text(msg.text)
-                    .font(.subheadline)
-                    .padding(StudyTheme.Spacing.md)
-                    .background(msg.isUser ? StudyTheme.Colors.primary : Color.systemBackground)
-                    .foregroundColor(msg.isUser ? .white : .primary)
-                    .cornerRadius(StudyTheme.Radius.md)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: StudyTheme.Radius.md)
-                            .stroke(msg.isUser ? Color.clear : StudyTheme.Colors.border, lineWidth: 1)
-                    )
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(msg.text.isEmpty && msg.isPartial ? "..." : msg.text)
+                        .font(.subheadline)
+                        .lineSpacing(3)
+                    
+                    // 打字中微型呼吸光标
+                    if !msg.isUser && msg.isPartial && viewModel.isAIGenerating {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(StudyTheme.Colors.accent)
+                                .frame(width: 5, height: 5)
+                            Text("正在输出...")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(StudyTheme.Spacing.md)
+                .background(msg.isUser ? StudyTheme.Colors.primary : Color.systemBackground)
+                .foregroundColor(msg.isUser ? .white : .primary)
+                .cornerRadius(StudyTheme.Radius.md)
+                .overlay(
+                    RoundedRectangle(cornerRadius: StudyTheme.Radius.md)
+                        .stroke(msg.isUser ? Color.clear : StudyTheme.Colors.border, lineWidth: 1)
+                )
                 
                 if !msg.isUser { Spacer() }
             }
@@ -318,7 +466,7 @@ public struct AISidebarView: View {
             
             if viewModel.isAIGenerating {
                 Button {
-                    viewModel.cancelAIGeneration()
+                    viewModel.stopAIGeneration()
                 } label: {
                     Image(systemName: "stop.circle.fill")
                         .font(.title2)
@@ -368,6 +516,7 @@ public struct AISidebarView: View {
             }
             
             content()
+
         }
         .padding(StudyTheme.Spacing.md)
         .background(Color.systemBackground)

@@ -63,6 +63,14 @@ public final class ReaderViewModel: ObservableObject {
     @Published public var currentAIResult: AIResult?
     @Published public var messages: [AIMessageItem] = []
     @Published public var askInputText: String = ""
+    @Published public var currentAIStatus: AIResultStatus = .pending
+    @Published public var currentErrorMessage: String?
+    @Published public var activeManifest: ContextManifest?
+    
+    // 当前在途请求追踪标识 (用于与后端 AIServiceActor cancel 交互)
+    private var activeRequestID: String?
+    private var activeAttemptID: String?
+    private var activeGenerationTask: Task<Void, Never>?
     
     // MARK: - 初始化
     public init(
@@ -145,7 +153,9 @@ public final class ReaderViewModel: ObservableObject {
         }
     }
     
-    // MARK: - AI 解释与问答
+    // MARK: - AI 真实流式助学与问答 (M2-UI 规范落地)
+    
+    /// 请求选区解释
     public func requestAIExplanation(for anchor: SourceAnchor) {
         selectionAnchor = nil
         selectionScreenRect = nil
@@ -155,54 +165,342 @@ public final class ReaderViewModel: ObservableObject {
         currentScope = .selection(anchor: anchor)
         
         let promptQuote = anchor.quote ?? "选定文本"
-        let userMsg = AIMessageItem(isUser: true, text: "解释选区: “\(promptQuote)”")
-        messages.append(userMsg)
-        
-        isAIGenerating = true
-        // 模拟 AI 助学流式解析响应
-        Task {
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            let answerText = "该段落主要阐述了核心概念的核心机制。在上下文语境中，它强调了多层抽象与边界隔离的关键设计原则。"
-            let aiMsg = AIMessageItem(
-                isUser: false,
-                text: answerText,
-                sources: [anchor]
-            )
-            self.messages.append(aiMsg)
-            self.isAIGenerating = false
-        }
+        askAI(text: "解释选区: “\(promptQuote)”", selectedAnchor: anchor)
     }
     
+    /// 发送自由问答
     public func sendQuestion() {
         let text = askInputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         
         askInputText = ""
+        askAI(text: text)
+    }
+    
+    /// 核心自由问答流式调用：基于 coreService.aiService 消费 AsyncThrowingStream
+    public func askAI(text: String, selectedAnchor: SourceAnchor? = nil) {
+        // 若当前正在生成，先主动终止前序任务
+        if isAIGenerating {
+            stopAIGeneration()
+        }
+        
+        let reqID = UUID().uuidString
+        let attID = UUID().uuidString
+        self.activeRequestID = reqID
+        self.activeAttemptID = attID
+        
+        // 1. 追加用户消息
         let userMsg = AIMessageItem(isUser: true, text: text)
         messages.append(userMsg)
         
+        // 2. 初始化 AI 占位消息与状态
+        let aiMsgID = UUID().uuidString
+        let initialAiMsg = AIMessageItem(
+            id: aiMsgID,
+            isUser: false,
+            text: "",
+            sources: [],
+            isPartial: true
+        )
+        messages.append(initialAiMsg)
+        
         isAIGenerating = true
-        Task {
-            try? await Task.sleep(nanoseconds: 750_000_000)
-            let responseText = "基于当前文档第 \(adapter.currentPageIndex0 + 1) 页内容分析：\(text) 在系统设计中起到桥梁解耦作用。"
-            let currentAnchor = SourceAnchor(
-                documentID: document.id,
-                documentRevision: document.revision,
-                pageIndex0: adapter.currentPageIndex0,
-                precision: .page
-            )
-            let aiMsg = AIMessageItem(isUser: false, text: responseText, sources: [currentAnchor])
-            self.messages.append(aiMsg)
-            self.isAIGenerating = false
+        currentAIStatus = .running
+        currentErrorMessage = nil
+        
+        // 3. 构建请求与上下文清单
+        let scopeToUse: AIScope
+        if let anchor = selectedAnchor {
+            scopeToUse = .selection(anchor: anchor)
+        } else {
+            scopeToUse = currentScope
+        }
+        
+        let request = AIRequest(
+            requestID: reqID,
+            attemptID: attID,
+            documentID: document.id,
+            documentRevision: document.revision,
+            scope: scopeToUse,
+            mode: .ask,
+            question: text,
+            selectedAnchor: selectedAnchor,
+            providerProfileID: "openai-default"
+        )
+        
+        let providerSnapshot = ProviderSnapshot(
+            profileID: "openai-default",
+            endpoint: "https://api.openai.com/v1",
+            model: "gpt-4o-mini"
+        )
+        let aggregator = ContextAggregator()
+        let aggregated = aggregator.buildContext(
+            request: request,
+            providerSnapshot: providerSnapshot,
+            document: document
+        )
+        self.activeManifest = aggregated.manifest
+        
+        // 4. 启动异步 Task 消费流
+        activeGenerationTask = Task { [weak self] in
+            guard let self = self else { return }
+            
+            do {
+                let stream = try await self.coreService.aiService.generateStream(
+                    request: request,
+                    manifest: aggregated.manifest
+                )
+                
+                var accumulatedText = ""
+                for try await chunk in stream {
+                    // 检查 Task 是否已取消
+                    if Task.isCancelled {
+                        return
+                    }
+                    accumulatedText += chunk.delta
+                    
+                    // 响应式逐字更新 UI 上的最后一条 AI 消息
+                    if let idx = self.messages.firstIndex(where: { $0.id == aiMsgID }) {
+                        self.messages[idx] = AIMessageItem(
+                            id: aiMsgID,
+                            isUser: false,
+                            text: accumulatedText,
+                            sources: selectedAnchor != nil ? [selectedAnchor!] : [],
+                            timestamp: Date(),
+                            isPartial: true
+                        )
+                    }
+                }
+                
+                // 正常完成流式生成
+                guard !Task.isCancelled, self.activeAttemptID == attID else { return }
+                
+                // 锚点验证
+                var sources: [SourceAnchor] = []
+                if let anchor = selectedAnchor {
+                    sources = await self.coreService.aiService.validateSources(sources: [anchor])
+                } else {
+                    let pageAnchor = SourceAnchor(
+                        documentID: self.document.id,
+                        documentRevision: self.document.revision,
+                        pageIndex0: self.adapter.currentPageIndex0,
+                        precision: .page
+                    )
+                    sources = await self.coreService.aiService.validateSources(sources: [pageAnchor])
+                }
+                
+                if let idx = self.messages.firstIndex(where: { $0.id == aiMsgID }) {
+                    self.messages[idx] = AIMessageItem(
+                        id: aiMsgID,
+                        isUser: false,
+                        text: accumulatedText.isEmpty ? "（未获取到有效回答内容）" : accumulatedText,
+                        sources: sources,
+                        timestamp: Date(),
+                        isPartial: false
+                    )
+                }
+                
+                self.currentAIStatus = .completed
+                self.isAIGenerating = false
+                self.activeRequestID = nil
+                self.activeAttemptID = nil
+                
+            } catch is CancellationError {
+                // 主动取消：严格置为 .cancelled 终态，与 .failed 互斥
+                guard self.activeAttemptID == attID else { return }
+                self.markGenerationCancelled(msgID: aiMsgID)
+            } catch {
+                // 异常处理：严格置为 .failed 终态，与 .cancelled 互斥
+                guard self.activeAttemptID == attID else { return }
+                if self.currentAIStatus != .cancelled {
+                    self.markGenerationFailed(msgID: aiMsgID, error: error)
+                }
+            }
         }
     }
     
-    public func cancelAIGeneration() {
-        isAIGenerating = false
-        if let last = messages.last, !last.isUser {
-            displayToast("已终止生成")
+    /// 生成助学导读卡片流（六段式）
+    public func generateStudyGuide(scope: AIScope) {
+        if isAIGenerating {
+            stopAIGeneration()
+        }
+        
+        let reqID = UUID().uuidString
+        let attID = UUID().uuidString
+        self.activeRequestID = reqID
+        self.activeAttemptID = attID
+        
+        isAIGenerating = true
+        currentAIStatus = .running
+        currentErrorMessage = nil
+        currentScope = scope
+        
+        let request = AIRequest(
+            requestID: reqID,
+            attemptID: attID,
+            documentID: document.id,
+            documentRevision: document.revision,
+            scope: scope,
+            mode: .guide,
+            question: "为当前学习范围生成深度六段式研读导引与核心考点解析",
+            providerProfileID: "openai-default"
+        )
+        
+        let providerSnapshot = ProviderSnapshot(
+            profileID: "openai-default",
+            endpoint: "https://api.openai.com/v1",
+            model: "gpt-4o-mini"
+        )
+        let aggregator = ContextAggregator()
+        let aggregated = aggregator.buildContext(
+            request: request,
+            providerSnapshot: providerSnapshot,
+            document: document
+        )
+        self.activeManifest = aggregated.manifest
+        
+        var guideResult = AIResult(
+            requestID: reqID,
+            attemptID: attID,
+            scopeSnapshot: aggregated.manifest.scopeSnapshot,
+            status: .running,
+            content: ""
+        )
+        self.currentAIResult = guideResult
+        
+        activeGenerationTask = Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                let stream = try await self.coreService.aiService.generateStream(
+                    request: request,
+                    manifest: aggregated.manifest
+                )
+                
+                var accumulated = ""
+                for try await chunk in stream {
+                    if Task.isCancelled { return }
+                    accumulated += chunk.delta
+                    guideResult.content = accumulated
+                    self.currentAIResult = guideResult
+                }
+                
+                guard !Task.isCancelled, self.activeAttemptID == attID else { return }
+                guideResult.status = .completed
+                guideResult.content = accumulated
+                self.currentAIResult = guideResult
+                self.currentAIStatus = .completed
+                self.isAIGenerating = false
+                self.activeRequestID = nil
+                self.activeAttemptID = nil
+            } catch is CancellationError {
+                guard self.activeAttemptID == attID else { return }
+                self.currentAIStatus = .cancelled
+                guideResult.status = .cancelled
+                self.currentAIResult = guideResult
+                self.isAIGenerating = false
+                self.displayToast("导学生成已取消")
+            } catch {
+                guard self.activeAttemptID == attID else { return }
+                if self.currentAIStatus != .cancelled {
+                    self.currentAIStatus = .failed
+                    self.currentErrorMessage = error.localizedDescription
+                    guideResult.status = .failed
+                    self.currentAIResult = guideResult
+                    self.isAIGenerating = false
+                }
+            }
         }
     }
+    
+    /// 主动停止当前正在进行的生成（严格保证 cancelled 与 failed 互斥，支持 alreadyTerminal 防御）
+    public func stopAIGeneration() {
+        guard isAIGenerating, let reqID = activeRequestID, let attID = activeAttemptID else {
+            isAIGenerating = false
+            return
+        }
+        
+        // 1. 取消客户端 Task
+        activeGenerationTask?.cancel()
+        activeGenerationTask = nil
+        
+        // 2. 状态机互斥置为 cancelled
+        currentAIStatus = .cancelled
+        isAIGenerating = false
+        
+        // 3. 标记最后一条 AI 消息为取消终态
+        if let last = messages.last, !last.isUser && last.isPartial {
+            if let idx = messages.indices.last {
+                let updatedText = last.text.isEmpty ? "（生成已由读者主动终止）" : "\(last.text)\n\n[⏹️ 读者已终止生成]"
+                messages[idx] = AIMessageItem(
+                    id: last.id,
+                    isUser: false,
+                    text: updatedText,
+                    sources: last.sources,
+                    timestamp: Date(),
+                    isPartial: false
+                )
+            }
+        }
+        
+        // 4. 调用后端 AIService cancel
+        Task { [weak self] in
+            guard let self = self else { return }
+            _ = await self.coreService.aiService.cancel(requestID: reqID, attemptID: attID)
+            self.displayToast("已停止生成")
+        }
+    }
+    
+    /// 重试上一次失败或取消的任务（派发全新 attemptID 并复核 Manifest）
+    public func retryLastAIAction() {
+        if let lastUserMsg = messages.last(where: { $0.isUser }) {
+            askAI(text: lastUserMsg.text)
+        } else {
+            generateStudyGuide(scope: currentScope)
+        }
+    }
+    
+    // MARK: - 内部私有终态辅助 (互斥保障)
+    private func markGenerationCancelled(msgID: String) {
+        currentAIStatus = .cancelled
+        isAIGenerating = false
+        if let idx = messages.firstIndex(where: { $0.id == msgID }) {
+            let item = messages[idx]
+            let updatedText = item.text.isEmpty ? "（生成已终止）" : "\(item.text)\n\n[⏹️ 已终止生成 (部分结果)]"
+            messages[idx] = AIMessageItem(
+                id: item.id,
+                isUser: false,
+                text: updatedText,
+                sources: item.sources,
+                timestamp: Date(),
+                isPartial: false
+            )
+        }
+        displayToast("已终止生成")
+    }
+    
+    private func markGenerationFailed(msgID: String, error: Error) {
+        currentAIStatus = .failed
+        currentErrorMessage = error.localizedDescription
+        isAIGenerating = false
+        if let idx = messages.firstIndex(where: { $0.id == msgID }) {
+            let item = messages[idx]
+            let updatedText = item.text.isEmpty ? "生成失败: \(error.localizedDescription)" : "\(item.text)\n\n[⚠️ 生成中断: \(error.localizedDescription)]"
+            messages[idx] = AIMessageItem(
+                id: item.id,
+                isUser: false,
+                text: updatedText,
+                sources: item.sources,
+                timestamp: Date(),
+                isPartial: false
+            )
+        }
+        displayToast("AI 生成失败: \(error.localizedDescription)")
+    }
+    
+    public func cancelAIGeneration() {
+        stopAIGeneration()
+    }
+
     
     // MARK: - 笔记与书签快捷操作
     public func saveNoteFromSelection(text: String, anchor: SourceAnchor) async {

@@ -1,6 +1,6 @@
 # StudyOS 项目看板
 
-更新：2026-09-07T23:31:30+08:00。M0 文档阶段与 M1-SETUP 原生工程脚手架阶段均已收口完成（DONE）；GitHub Actions CI 真实云端环境（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器）全绿灯通过，26 项自动化测试套件 100% PASS（0 失败）；M2 核心阅读流、批注笔迹持久化与 AI 交互联调进入 READY 规划阶段；平台为 iPad 原生。
+更新：2026-09-07T23:52:00+08:00。M0 文档阶段与 M1-SETUP 原生工程脚手架阶段均已收口完成（DONE）；GitHub Actions CI 真实云端环境（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器）全绿灯通过，26 项自动化测试套件 100% PASS（0 失败）；用户已下达推进指令，M2 阶段正式启动：M2-BE 置为 IN_PROGRESS 并授权 Codex1 启动核心服务实施，M2-UI 与 M2-QA 置为 READY；平台为 iPad 原生。
 
 | 任务 | 负责人 | 依赖 | 排他可写路径 | 验收条件 | 状态 |
 |---|---|---|---|---|---|
@@ -11,7 +11,9 @@
 | M0-UI-REVIEW 方案审阅与联调补充 | PM Claude1 / QA Codex2；主协调者临时收口 | M0-UI-ui-001 | docs/project/**、docs/qa/**、对应个人日志 | PM 一致性报告与 QA 独立审阅/联调用例落盘，状态真实 | DONE |
 | M0-BE-REV2 契约定向补充 | Codex1；QA复核；PM接收 | UI002复核 | docs/backend/**、backend日志；QA/PM各自范围 | 四组契约映射补齐并经QA设计复核 | DONE |
 | M1-SETUP 原生工程与阅读切片 | Codex1(工程/服务) + Claude2(UI/适配) + Codex2(测试套件) | M0 全部文档收口，真实 Mac 构建环境就绪 | 工程配置独占写者 Codex1；UI/服务/测试目录严格隔离 | CI 云端构建通过 (macOS-14 / Xcode 15.4 / iPadOS 17.5 模拟器)，26 项自动化单元测试全量 PASS，无编译错误与并发警告 | DONE |
-| M2 核心阅读流、批注笔迹持久化与 AI 交互联调 | Codex1(核心服务/Provider) + Claude2(UI/适配) + Codex2(测试套件) | M1-SETUP 闭环，真实 iPad/模拟器交互环境 | 后端 `StudyOS/Services/`, `StudyOS/Storage/`；UI `StudyOS/UI/`, `StudyOS/Views/`；测试 `StudyOSTests/` | R01–R09 原生流打通，笔迹持久化与乐观锁闭环，AI 助学流式与来源锚点高亮联调通过 | READY |
+| M2-BE 核心服务与 Provider 基础设施 | 项目后端 Codex1 | M1-SETUP 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`docs/backend/**`、`docs/logs/backend.md` | 本地 LLM Provider 抽象（OpenAI/Anthropic 兼容流式客户端、SSE 解析、超时与取消、网络错误映射）、五级上下文动态清单聚合器（ContextAggregator）、PDF 文本/大纲抽取优化 | IN_PROGRESS |
+| M2-UI 交互流与 AI 呈现落地 | UI 总监 Claude2 | M2-BE 核心服务接口/数据模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | AI 侧栏流式打字机呈现与终态管理（failed/cancelled 互斥）、选区浮动菜单与高亮落地、设置/API Key 配置面板 | READY |
+| M2-QA 自动化测试与端到端验证 | 项目测试 Codex2 | M2-BE/UI 实施交付物 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | Provider 流式网络 Mock 测试、上下文清单过滤断言、阅读与笔记持久化端到端测试套件 | READY |
 
 每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M1-SETUP 已全量收口闭环（DONE）。
 
@@ -160,3 +162,23 @@ PM Claude1 正式将 **M1-SETUP 状态更新为 DONE**，宣告原生工程脚�
 - **Claude1（项目经理）**：
   - 排他可写目录：`docs/project/**`、`docs/logs/pm.md`、`docs/handoffs/`；
   - 核心职责：阶段看板维护、契约变更审阅仲裁、阶段验收把控。
+
+## M2 启动与任务编排记录
+
+2026-09-07T23:52:00+08:00：收到用户推进指令，M2 阶段正式启动。PM Claude1 完成 M2 子任务拆解与协作边界编排，产出启动与任务授权交接文档 `docs/handoffs/M2-KICKOFF-pm-001.md`。
+
+### 1. 子任务拆解与排他边界授权
+
+| 子任务编号 | 责任人 | 状态 | 排他可写目录 | 核心工作内容与交付边界 |
+|---|---|---|---|---|
+| **M2-BE** | 项目后端 Codex1 | **IN_PROGRESS** | `StudyOS/Core/`<br>`StudyOS/Services/`<br>`StudyOS/Models/`<br>`StudyOS/Storage/`<br>`StudyOS/Contracts/`<br>`docs/backend/**`<br>`docs/logs/backend.md` | **本地 LLM Provider 抽象与核心上下文服务**：<br>1. 实现 OpenAI / Anthropic 兼容流式网络客户端（`LLMProviderProtocol`、SSE 协议解析、Chunk 增量吐字）；<br>2. 网络异常处理与超时取消机制（`Task.isCancelled` / `URLSession` 取消映射、网络错误统一转译）；<br>3. 五级上下文动态清单聚合器（`ContextAggregator`，精准装配当前选区/当前页/章节范围/整篇大纲/历史问答，生成可审计的 `outboundItems` 外发清单）；<br>4. PDF 文本提取与章节大纲索引优化（无目录降级处理、跨页选区坐标映射）。 |
+| **M2-UI** | UI 总监 Claude2 | **READY** | `StudyOS/UI/`<br>`StudyOS/Views/`<br>`StudyOS/Adapters/`<br>`StudyOS/ViewModels/`<br>`docs/ui/**`<br>`docs/logs/ui.md` | **原生交互流与 AI 交互呈现落地**：<br>1. AI 侧栏流式打字机逐字呈现与动效（`AISidebarView`）；<br>2. 终态互斥管理（`failed` 与 `cancelled` 严格互斥状态机、`alreadyTerminal` 防御与重试交互）；<br>3. 选区浮动菜单落地（`SelectionCalloutMenu`，支持选区生命周期监听、解释/翻译/摘录触发）；<br>4. 原文多点高亮与引用聚焦发光层（`SourceAnchorFocusRing` 与文本高亮渲染联动）；<br>5. 设置与 Provider 配置面板（API Key、Base URL、Model 选择与安全存储）。 |
+| **M2-QA** | 项目测试 Codex2 | **READY** | `docs/qa/**`<br>`StudyOSTests/`<br>`StudyOSUITests/`<br>`docs/logs/qa.md` | **自动化测试与端到端回归套件**：<br>1. Provider 流式网络 Mock 测试（SSE 流式模拟、Token 拼装、网络异常与断网恢复断言）；<br>2. 上下文清单过滤断言（五级上下文动态范围核对、敏感信息阻断断言）；<br>3. 阅读与笔记持久化端到端测试套件（多页并发保存、乐观锁防脏写、两路删除策略解绑全覆盖）；<br>4. UI 状态机互斥与云端 GitHub Actions CI 流水线验证。 |
+
+### 2. 执行协作时序与依赖推进
+1. **第一波次（当前进行中）**：
+   - **Codex1 独占推进 M2-BE**：完成 LLM Provider 抽象协议、SSE 客户端、`ContextAggregator` 及 PDF 文本抽取优化，产出后端交接文档 `docs/handoffs/M2-BE-backend-001.md`；
+2. **第二波次（待 M2-BE 交付后激活）**：
+   - **Claude2 接棒推进 M2-UI**：对接后端 Provider 协议与 ViewModel，实现流式打字机、选区菜单、设置面板及引用高亮联动，产出 UI 交接文档；
+3. **第三波次（实施完成后闭环）**：
+   - **Codex2 推进 M2-QA**：接入 Mock 与端到端测试，提交云端 CI 验证并出具测试验收报告。

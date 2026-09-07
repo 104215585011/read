@@ -64,3 +64,28 @@
 3. StorageActorTests (4/4 PASS)：TaskGroup 并发墨水写入无冲突、连续笔画单调递增、expectedRevision 冲突拒绝与墨水及索引清理；
 4. ReaderAdapterFlowTests (8/8 PASS)：跨会话核对与 ignoredStaleSession 静默丢弃、过期/已删除来源拦截、墨水跨会话拒绝、工具态流转与导航越界保护。
 全量评定为 PASS。将验收结果映射至验收矩阵基础项。已向主协调者汇报。释放本轮 QA 文档排他写入权限。
+
+## 2026-09-07T23:57:00+08:00 READ_ACK / ACCEPTED / START · M2-QA
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收后端 Codex1 交付的 M2-BE 核心契约与服务（包含 LLMProviderProtocol、AIServiceProtocol、OpenAICompatibleProvider、ContextAggregator、AIService，以及 CoreServiceProtocol 中新增的 aiService）。
+已读 AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、docs/project/UI-V03-HANDOFF.md、docs/backend/CONTRACT-v0.1-draft.md (0.1-draft / M0-BE-REV2) 以及最新的交接文件 docs/handoffs/M2-BE-backend-001.md。
+本轮任务：
+1. 修复 Mock 兼容性：在 StudyOSTests/ReaderAdapterFlowTests.swift 的 MockCoreServiceForAdapter 中补充 var aiService: AIServiceProtocol { fatalError(...) } 契约扩展实现；
+2. 编写 M2 核心测试套件 StudyOSTests/AIServiceTests.swift：
+   - 五级上下文清单装配（ContextAggregator：selection / page / chapter / document / history 聚合与 outboundItems 生成）；
+   - AIService 状态机终态互斥：failed 与 cancelled 严格互斥，迟到包不覆盖终态 (alreadyTerminal)；
+   - MockLLMProvider 流式吐字与主动取消（Task.cancel() 触发 cancelled 终态）；
+3. 严格遵循纯原生实现、Swift 5.10 / 6 Strict Concurrency 安全、无阻塞与死锁；
+4. 产出交接文档 docs/handoffs/M2-QA-qa-001.md 并更新本日志；
+严格排他维护 docs/qa/**、docs/logs/qa.md、docs/handoffs/M2-QA-*.md 及专有测试目录 StudyOSTests/**，严禁修改业务源码或工程配置。
+
+## 2026-09-08T00:03:00+08:00 HANDOFF / END · M2-QA
+完成 M2 核心测试套件落地与交付：
+1. 修复 Mock 兼容性：在 StudyOSTests/ReaderAdapterFlowTests.swift 的 MockCoreServiceForAdapter 中补充 var aiService: AIServiceProtocol { fatalError(...) }，适配 CoreServiceProtocol 契约扩展；
+2. 在专有测试目录 StudyOSTests/AIServiceTests.swift 交付 11 个核心测试方法：
+   - ContextAggregator 五级上下文动态聚合（selection / page / chapter / document 章节大纲与文档元数据降级 / history 问答历史与用户提问）；
+   - OutboundItems 生成、摘要哈希算法 (sha256_length_hash)、用量预估 (reservedOutputTokens 2048) 与隐私四项默认脱敏 (originalFile, pageImage, handwriting 均 excluded)；
+   - AIService 状态机终态互斥：failed 与 cancelled 互斥、completed/failed/cancelled 后的 alreadyTerminal 二次操作与迟到事件防御；
+   - MockLLMProvider 纯原生流式逐 chunk 吐字与双路主动取消（Task.cancel() 与 aiService.cancel()）；
+   - SourceAnchor 有效性校验过滤 (validateSources：availability、存在性、版本一致性、页码边界越界)；
+3. 严格遵循纯原生与 Swift 5.10 / 6 并发安全（@Sendable、Actor 隔离、无 Task 内部 self 捕获、无死锁）；
+4. 产出交接文件 docs/handoffs/M2-QA-qa-001.md。当前宿主为 Windows，严格标为 NOT_RUN，绝不虚报 PASS。已向主协调者汇报。释放本轮 QA 专有写入权限。

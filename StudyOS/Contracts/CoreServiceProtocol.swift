@@ -44,6 +44,7 @@ public protocol CoreServiceProtocol: Sendable {
     var documentService: DocumentServiceProtocol { get }
     var readerCoreService: ReaderCoreServiceProtocol { get }
     var noteService: NoteServiceProtocol { get }
+    var aiService: AIServiceProtocol { get }
 
     func resolveSource(_ anchor: SourceAnchor) async -> SourceResolution
     func flushInk(snapshot: InkSaveSnapshot) async -> Result<InkSaveReceipt, SaveInkError>
