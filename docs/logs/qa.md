@@ -158,3 +158,21 @@
    - FullDocumentStudyTests：全文研读分析报告生成（概念节点网络 concepts、知识拓扑关系 relations、考点解析 difficultyPoints、关键小节指引 keySections 及 readingEstimate 耗时估算）；本地缓存命中与快速复用；自定义研读报告手动保存更新；不存在文档 notFound 防御；跨服务实例冷启动沙盒持久化数据恢复；
 3. 严格遵循纯原生与 Strict Concurrency 并发安全：使用 NSLock 保护的 @unchecked Sendable 进度收集器，测试类继承 XCTestCase 无全局 @MainActor 隔离冲突，全生命周期无阻塞与死锁；
 4. 交付交接文档 docs/handoffs/M3-QA-qa-001.md。因 Windows 开发宿主无 Xcode/Swift 工具链，客观严谨标定为 NOT_RUN，绝不虚报 PASS。已向主协调者汇报。释放本轮 QA 专有写入权限。
+
+## 2026-09-08T11:20:00+08:00 READ_ACK / ACCEPTED / START · M3-QA-FIX2
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收主协调者规范 StudyOSTests/M3BackendTests.swift 中 AIOrigin 构造调用的指令。
+已阅读并确认：AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、Note.swift 中的 AIOrigin 定义。
+本轮任务：
+1. 规范 StudyOSTests/M3BackendTests.swift 中的 AIOrigin 构造参数（行 537-542 及行 747），精准对齐 Note.swift 中 AIOrigin(requestID:attemptID:prompt:generatedAt:) 定义；
+2. 确保全部测试纯原生实现、Strict Concurrency 安全、零并发冲突；
+3. 交付交接文档 docs/handoffs/M3-QA-FIX2-qa-001.md 并追加本日志，向主协调者汇报；
+严格遵守排他写入规则：仅修改专有测试目录 StudyOSTests/**、docs/qa/**、docs/logs/qa.md 与 docs/handoffs/M3-QA-FIX2-*.md，严禁修改业务源码或工程配置。
+
+## 2026-09-08T11:22:00+08:00 HANDOFF / END · M3-QA-FIX2
+完成 StudyOSTests/M3BackendTests.swift 中 AIOrigin 构造参数精准规范对齐：
+1. 行 537-542：对齐为 AIOrigin(requestID: "local-distill-q4", attemptID: "att_study_001", prompt: "解释单调函数定理", generatedAt: Date())；
+2. 行 747：对齐为 AIOrigin(requestID: "local-mock", attemptID: "att_conv", prompt: "测试转换")；
+3. 全面核查确认无多余参数或形参不匹配，纯原生 Swift 实现且符合 Swift 5.10 / Swift 6 Strict Concurrency 严格并发安全标准；
+4. 交付交接文档 docs/handoffs/M3-QA-FIX2-qa-001.md。当前环境标为 NOT_RUN。已向主协调者汇报。释放本轮 QA 专有写入权限。
+
+

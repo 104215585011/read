@@ -8,14 +8,38 @@ public struct AIOrigin: Codable, Sendable, Hashable {
     public let generatedAt: Date
 
     public init(
-        requestID: String,
-        attemptID: String,
+        requestID: String = UUID().uuidString,
+        attemptID: String = UUID().uuidString,
         prompt: String? = nil,
         generatedAt: Date = Date()
     ) {
         self.requestID = requestID
         self.attemptID = attemptID
         self.prompt = prompt
+        self.generatedAt = generatedAt
+    }
+
+    public init(
+        attemptID: String,
+        profileID: String? = nil,
+        promptSnapshot: String? = nil,
+        generatedAt: Date = Date()
+    ) {
+        self.requestID = profileID ?? UUID().uuidString
+        self.attemptID = attemptID
+        self.prompt = promptSnapshot
+        self.generatedAt = generatedAt
+    }
+
+    public init(
+        requestID: String,
+        promptDigest: String? = nil,
+        modelProfile: String? = nil,
+        generatedAt: Date = Date()
+    ) {
+        self.requestID = requestID
+        self.attemptID = modelProfile ?? UUID().uuidString
+        self.prompt = promptDigest
         self.generatedAt = generatedAt
     }
 }

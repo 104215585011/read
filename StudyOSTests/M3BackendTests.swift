@@ -535,9 +535,9 @@ final class AINoteServiceTests: XCTestCase {
             sourceAnchors: [anchor],
             originKind: .document,
             aiOrigin: AIOrigin(
+                requestID: "local-distill-q4",
                 attemptID: "att_study_001",
-                profileID: "local-distill-q4",
-                promptSnapshot: "解释单调函数定理",
+                prompt: "解释单调函数定理",
                 generatedAt: Date()
             )
         )
@@ -744,7 +744,11 @@ final class AINoteServiceTests: XCTestCase {
             documentID: "doc_conv_01",
             sourceAnchors: [SourceAnchor(documentID: "doc_conv_01", pageIndex0: 2)],
             originKind: .document,
-            aiOrigin: AIOrigin(attemptID: "att_conv", profileID: "local-mock", promptSnapshot: "测试转换")
+            aiOrigin: AIOrigin(
+                requestID: "local-mock",
+                attemptID: "att_conv",
+                prompt: "测试转换"
+            )
         )
         let card = AINoteCard(
             id: "card_conv_test",

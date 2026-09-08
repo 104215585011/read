@@ -781,8 +781,8 @@ public final class ReaderViewModel: ObservableObject {
             originKind: .document,
             aiOrigin: AIOrigin(
                 requestID: activeRequestID ?? UUID().uuidString,
-                promptDigest: "digest_\(Date().timeIntervalSince1970)",
-                modelProfile: "studyos-ai"
+                attemptID: activeAttemptID ?? UUID().uuidString,
+                prompt: "digest_\(Date().timeIntervalSince1970)"
             )
         )
         
