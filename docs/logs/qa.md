@@ -236,3 +236,44 @@
 3. 纯原生与并发安全结论：完全零第三方外部依赖，Swift 6 严格并发模式 (-strict-concurrency=complete) 零警告通过；
 4. 客观交付边界：确认 U+S (单元与模拟器自动化) 74 项测试 100% PASS；Apple Pencil 物理手写压感/倾斜/真实摩擦感及真机 NPU 功耗压测留待后续 D (真实真机) 阶段走查；
 5. 交付文件：docs/qa/M3-VERIFICATION-REPORT.md、docs/handoffs/M3-QA-CLOSE-qa-001.md。向主协调者汇报。释放本轮 QA 文档排他写入权限。
+
+## 2026-09-08T13:48:00+08:00 READ_ACK / ACCEPTED / START · M4-QA
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收 Codex1 (后端) 交付的 M4-BE 核心契约与服务（包含弱网弹性重试恢复引擎 NetworkResilienceRetryEngine、端侧离线资源管理器 OfflineResourceManager、端侧离线模型包与动态降级调度器 LocalModelPackageManager，以及 RetryPolicy, OfflineFallbackDecision 等）。
+已读 AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、docs/project/PLAN.md、docs/product/PRD-v0.1-source.md、docs/backend/CONTRACT-v0.1-draft.md (0.1-draft / M0-BE-REV2) 以及最新交接文件 docs/handoffs/M4-BE-backend-001.md、docs/handoffs/M4-KICKOFF-pm-001.md。
+本轮任务：
+1. 编制《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（docs/qa/MANUAL-WALKTHROUGH-GUIDE.md），系统性覆盖全部 10 大物理检验流（压感、倾斜、120Hz跟手、Palm Rejection、硬件双击/Hover、分批长文档内存、端侧模型功耗发热、弱网断网热降级、深浅与纸张底色主题、Stage Manager / 旋转视口对齐），提供严谨的前置条件、操作步骤、物理手感与视觉预期、客观通过准则 (Pass Criteria)；
+2. 编写 M4 核心自动化测试套件 StudyOSTests/M4BackendTests.swift：
+   - NetworkResilienceTests：指数退避与 Jitter 抖动计算、可重试（网络故障/超时/5xx）与不可重试终态（取消/鉴权失败/4xx/alreadyTerminal）精准拦截、Task 取消中断、统计数据指标验证；
+   - OfflineResourceManagerTests：沙盒模型注册、分块存储合并至 weights.bin、CryptoKit SHA-256 完整性哈希校验比对、磁盘使用量统计与生命周期管理；
+   - LocalModelPackageManagerTests：断网与弱网时自动热降级决策（.fallbackToLocal）、设备内存临界告警（.critical）抑制降级避免 OOM、网络可用首选云端（.useCloud）、executeWithHotFallback 流式热降级验证；
+3. 严格保障纯原生 Swift 5.9+ / XCTest，Swift 6 严格并发模式（Strict Concurrency）无数据竞争、零警告；
+4. 交付交接文档 docs/handoffs/M4-QA-qa-001.md 并更新本日志；
+严格排他维护 docs/qa/**、StudyOSTests/**、docs/logs/qa.md 与 docs/handoffs/M4-QA-*.md，严禁修改业务代码、工程配置或他人专有文件。
+
+## 2026-09-08T13:50:30+08:00 HANDOFF / END · M4-QA
+完成 M4 走查手册编制与核心测试套件交付：
+1. 编制《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（docs/qa/MANUAL-WALKTHROUGH-GUIDE.md）：覆盖全部 10 大物理检验流（物理压感线性度与微小下压阈值、笔锋倾斜侧锋阴影渲染与阻尼感、ProMotion 120Hz 极低延迟与笔迹预测、手掌自然搭屏防误触零杂斑与视口锁止、Apple Pencil 2/Pro 硬件双击切换与 Hover 悬停预测环、300+ 页长文档异步抽取无 OOM、端侧模型连续推理 30 分钟温升与耗电、弱网 Jitter 退避与断网无缝热降级、4 种纸张背景主题无缝切换与墨水对比度、Stage Manager / Split View / 旋转视口坐标绝对贴合零偏移），定义严谨的客观量化通过准则、缺陷分级矩阵与通过性判定总则；
+2. 交付专有测试套件 StudyOSTests/M4BackendTests.swift（3 大测试类，共 32 项细分测试用例）：
+   - NetworkResilienceTests (13项)：RetryPolicy 默认值与 none 策略、确定性指数退避计算与 maxDelay 截断、Jitter 随机抖动理论区间边界、可重试（网络中断/超时/5xx/rateLimited）与不可重试终态（取消/鉴权失败/4xx/invalidResponse/alreadyTerminal）精准拦截、自定义断言谓词、执行成功零额外重试、瞬态故障重试恢复、不可重试终态立即阻断抛错（执行严格为 1 次）、重试耗尽抛错与指标记录、Task.cancel 敏捷中断、统计指标重置；
+   - OfflineResourceManagerTests (9项)：模型包注册与查询、删除包及物理沙盒清理、单模型权重写入、多分块按序写入与自动原子合并至 weights.bin 及清理临时切片、CryptoKit SHA-256 真实指纹校验通过、篡改哈希严格拦截、未注册与缺失权重防御、沙盒总存储空间用量统计；
+   - LocalModelPackageManagerTests (10项)：网络连通性与设备内存压力状态感知更新、网络通畅首选云端（.useCloud）、断网自动热降级端侧模型（.fallbackToLocal）、弱网自动降级、设备内存临界告警（.critical）抑制端侧模型防 OOM（.failImmediately）、活跃模型切换与最优运行时推选、断网下 executeWithHotFallback 直通本地、网络正常首选云端、云端遭遇超时故障时自动热降级至本地流式输出、配合 RetryEngine 重试耗尽后可靠回退本地保底；
+3. 严格遵循纯原生与 Swift 6 Strict Concurrency 并发安全：全部基于 Foundation、CryptoKit 与 XCTest 原生组件，使用 Actor 隔离与线程安全锁机制，无数据竞争与跨隔离警告隐患；
+4. 交付交接文档 docs/handoffs/M4-QA-qa-001.md。因 Windows 宿主无 Xcode/Swift 工具链，按 QA 客观严谨准则将执行状态真实标为 NOT_RUN，绝不虚报 PASS。已向主协调者汇报。释放本轮 QA 专有写入权限。
+
+## 2026-09-08T13:51:30+08:00 READ_ACK / ACCEPTED / START · M4-QA-FIX
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收主协调者维护测试桩兼容性的指令。
+已读取 AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md 及 CoreServiceProtocol。
+本轮任务：
+1. 在 StudyOSTests/ReaderAdapterFlowTests.swift 的 MockCoreServiceForAdapter 中显式补齐 CoreServiceProtocol 在 M4-BE 新增的 3 个属性：
+   - offlineResourceManager: OfflineResourceManagerProtocol（返回 fatalError）
+   - networkRetryEngine: NetworkResilienceRetryEngineProtocol（返回 fatalError）
+   - localModelPackageManager: LocalModelPackageManagerProtocol?（返回 nil）
+2. 保持纯原生 Swift 5.9+ / XCTest，零编译告警与并发风险；
+3. 更新本日志，向主协调者汇报；
+严格排他维护 StudyOSTests/**、docs/logs/qa.md，严禁修改业务源码或工程配置。
+
+## 2026-09-08T13:52:00+08:00 HANDOFF / END · M4-QA-FIX
+完成 StudyOSTests/ReaderAdapterFlowTests.swift 测试桩兼容性维护：
+1. 在 MockCoreServiceForAdapter 中显式添加 offlineResourceManager（fatalError）、networkRetryEngine（fatalError）与 localModelPackageManager（nil）属性实现；
+2. 彻底保障既有测试桩与 CoreServiceProtocol 显式契约声明 100% 严密对齐，杜绝任何潜在的编译不一致；
+3. 严格遵循纯原生与 Strict Concurrency 安全，测试状态如实标为 NOT_RUN。已向主协调者汇报。释放本轮 QA 专有写入权限。

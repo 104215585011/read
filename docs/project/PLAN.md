@@ -36,7 +36,7 @@ R02 同时验证默认全屏阅读、按需 AI 侧栏与返回阅读。R06/R07 �
 | M1-SETUP | 原生工程脚手架、配置基线、核心服务与基础切片 | 单一工程配置就绪，CI 云端构建通过 (macOS-14/Xcode 15.4/iPadOS 17.5 模拟器)，26 项自动化测试全量 PASS | **CLOSED (收口完成)** |
 | M2 | 核心阅读流、批注笔迹持久化与 AI 交互联调 (R01–R09, R14, R16, R17) | 原生阅读与手写流打通，笔迹持久化闭环，AI 助学流式与五级上下文聚合接入，真实正文透传与 SHA-256 全量哈希闭环，CI 47/47 PASS | **CLOSED (收口完成)** |
 | M3 | R10 全文学习视图分批研读、本地离线模型适配、R11 AI Notes 与自动化套件 (R10, R11, R14) | 长文档异步分批抽取引擎闭环，本地离线模型 Provider 抽象与状态机落地，AI Notes 乐观锁/两路删除闭环，CI 74/74 PASS | **CLOSED (收口完成)** |
-| M4-RELEASE | 真实 iPad 硬件与 Apple Pencil 物理走查、端侧模型真机压测与交付发布 | 真实 Apple Pencil 物理压感/倾斜/低延迟走查通过，真机发热与端侧模型功耗达标，生产网络联调闭环，App 归档发布 | **READY (规划就绪)** |
+| M4-RELEASE | 真实 iPad 硬件与 Apple Pencil 物理走查、硬件手势增强、真机走查规程与发布就绪交付 (R01–R17) | 端侧 CoreML/离线沙盒/重试策略落地，Pencil 双击/Hover 手势支持与主题切换打磨，10 大物理走查规程手册就绪，发布交付闭环 | **IN_PROGRESS (实施中)** |
 
 
 UI 设计与后端领域设计可并行。共享契约冻结先于两端对接；工程配置、依赖锁和迁移必须由单一写者串行更改。M1 出口不能用模型或截图替代手写真机验收。
@@ -78,7 +78,38 @@ UI 设计与后端领域设计可并行。共享契约冻结先于两端对接�
     5. Swift 6 严格并发检查完整模式 (`-strict-concurrency=complete`) 零警告通过，全量 8 大测试类 74 项测试用例在 GitHub Actions macOS-14 + iPadOS 17.5 模拟器上 **100% 全部通过 (74/74 PASS)**。
 - **待收敛 (M4-RELEASE 实体硬件走查与交付期)**：
   - 实体 iPad 设备与 Apple Pencil 硬件真机走查（物理压感 Force、笔锋倾斜角 Tilt、双击工具切换、手掌贴屏防误触 Palm Rejection 与极低书写延迟）；
-  - 端侧真实 CoreML / 本地 GGUF 权重真机加载与运行（真机 NPU / 统一内存带宽调度与长时间连续阅读发热/功耗走查）；
-  - 真实生产公网弱网、DNS 波动环境下的外部 Provider 联调。
+  - 端侧真实 CoreML / 本地模型沙盒调度与长期发热功耗压测；
+  - 真实生产公网弱网、DNS 波动环境下的自动重试与优雅降级。
+
+## M4-RELEASE 阶段规划与子任务细分
+
+### 1. 里程碑目标
+M4-RELEASE 为 StudyOS 首发交付与真机就绪阶段，旨在将前期云端 CI 模拟器已闭环的 74 项高健壮性自动化成果，平滑过渡至真实硬件物理走查并达成 App Store / 内部 Ad-Hoc 原生发布标准：
+1. **端侧模型调度与网络韧性（M4-BE）**：升级端侧 CoreML / 本地离线模型加载调度契约，建立离线资源沙盒隔离存储与管理机制，构建弱网/断网自动重试、指数退避与优雅保活恢复策略；
+2. **Apple Pencil 硬件手势与阅读主题（M4-UI）**：基于 `UIPencilInteraction` 原生硬件事件实现双击切换橡皮/笔刷、笔尖悬停 Hover 预测发光环，支持深浅底色与护眼纸张主题切换，精细打磨 Stage Manager 与横竖屏视口对齐；
+3. **真机与物理走查规程手册（M4-QA）**：编制标准《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`），规范 10 大物理检验流，覆盖压感、倾斜、延迟、防误触、手势流转、长文档批次加载与硬件发热。
+
+### 2. 子任务拆解与排他目录
+
+```mermaid
+graph TD
+    M4BE["M4-BE: 后端核心升级 (Codex1)<br/>IN_PROGRESS (已授权开工)<br/>CoreML调度 / 离线资源沙盒 / 弱网自动重试策略"] --> M4UI["M4-UI: 硬件手势与主题 (Claude2)<br/>READY (待BE契约就绪激活)<br/>PencilInteraction双击 / Hover环 / 纸张底色 / 视口打磨"]
+    M4BE --> M4QA["M4-QA: 物理走查手册与验收 (Codex2)<br/>READY (待命推进)<br/>10大物理检验流手册 / 真实iPad真机走查矩阵"]
+    M4UI --> M4QA
+```
+
+1. **M4-BE（项目后端 Codex1）**：
+   - 状态：`IN_PROGRESS`（正式授权即刻开工）；
+   - 排他目录：`StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`Package.swift`、`docs/backend/**`、`docs/logs/backend.md`；
+   - 核心内容：端侧 CoreML / 本地模型加载调度契约升级、离线资源沙盒管理、弱网断线自动重试与恢复策略。
+2. **M4-UI（UI 总监 Claude2）**：
+   - 状态：`READY`（待命，待 M4-BE 契约接口稳定后推进）；
+   - 排他目录：`StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md`；
+   - 核心内容：Apple Pencil 硬件手势支持（`UIPencilInteraction` 双击切换橡皮/当前笔、Apple Pencil Hover 笔尖悬停预测光环）、阅读器深浅底色与多重纸张背景主题切换、分屏/旋转视口精度打磨。
+3. **M4-QA（项目测试 Codex2）**：
+   - 状态：`READY`（待命，制定规程与测试矩阵）；
+   - 排他目录：`docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md`；
+   - 核心内容：编写《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`），覆盖 10 大物理检验流（压感、倾斜、延迟、防误触、手势流转、分批抽取、本地模型发热功耗、弱网重试、纸张底色、多窗口视口）。
+
 
 

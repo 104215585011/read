@@ -39,6 +39,18 @@ final class MockCoreServiceForAdapter: CoreServiceProtocol, @unchecked Sendable 
         fatalError("FullDocumentStudyService not accessed in ReaderAdapter unit tests")
     }
 
+    var offlineResourceManager: OfflineResourceManagerProtocol {
+        fatalError("OfflineResourceManager not accessed in ReaderAdapter unit tests")
+    }
+
+    var networkRetryEngine: NetworkResilienceRetryEngineProtocol {
+        fatalError("NetworkRetryEngine not accessed in ReaderAdapter unit tests")
+    }
+
+    var localModelPackageManager: LocalModelPackageManagerProtocol? {
+        nil
+    }
+
     func resolveSource(_ anchor: SourceAnchor) async -> SourceResolution {
         if let handler = resolveSourceHandler {
             return await handler(anchor)

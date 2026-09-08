@@ -49,8 +49,26 @@ public protocol CoreServiceProtocol: Sendable {
     var aiNoteService: AINoteServiceProtocol { get }
     var localLLMProvider: LocalLLMProviderProtocol? { get }
     var fullDocumentStudyService: FullDocumentStudyProtocol { get }
+    var offlineResourceManager: OfflineResourceManagerProtocol { get }
+    var networkRetryEngine: NetworkResilienceRetryEngineProtocol { get }
+    var localModelPackageManager: LocalModelPackageManagerProtocol? { get }
 
     func resolveSource(_ anchor: SourceAnchor) async -> SourceResolution
     func flushInk(snapshot: InkSaveSnapshot) async -> Result<InkSaveReceipt, SaveInkError>
     func savePosition(_ position: ReadingPosition) async throws -> Bool
 }
+
+public extension CoreServiceProtocol {
+    var offlineResourceManager: OfflineResourceManagerProtocol {
+        fatalError("offlineResourceManager not implemented in mock")
+    }
+
+    var networkRetryEngine: NetworkResilienceRetryEngineProtocol {
+        fatalError("networkRetryEngine not implemented in mock")
+    }
+
+    var localModelPackageManager: LocalModelPackageManagerProtocol? {
+        nil
+    }
+}
+

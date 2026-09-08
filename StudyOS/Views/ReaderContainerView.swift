@@ -55,7 +55,8 @@ public struct ReaderContainerView: View {
                 // 3. 底栏物理页码指示与滑块
                 readerBottomBar
             }
-            .background(StudyTheme.Colors.paperBackground)
+            .background(viewModel.selectedPaperTheme.backgroundColor)
+            .preferredColorScheme(viewModel.selectedPaperTheme.isDark ? .dark : nil)
             // 窄屏下 AI 侧栏转为自适应抽屉 Sheet
             .sheet(isPresented: Binding(
                 get: { !isWideScreen && viewModel.isAISidebarOpen },
@@ -124,6 +125,35 @@ public struct ReaderContainerView: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 190)
+            
+            // 护眼与纸张底色一键切换菜单 (M4-RELEASE)
+            Menu {
+                ForEach(StudyTheme.PaperTheme.allCases) { theme in
+                    Button {
+                        viewModel.selectedPaperTheme = theme
+                    } label: {
+                        HStack {
+                            Image(systemName: theme.iconName)
+                            Text(theme.displayName)
+                            if viewModel.selectedPaperTheme == theme {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: viewModel.selectedPaperTheme.iconName)
+                    Text(viewModel.selectedPaperTheme.displayName)
+                }
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(viewModel.selectedPaperTheme.isDark ? Color.white.opacity(0.12) : Color.primary.opacity(0.08))
+                .foregroundColor(viewModel.selectedPaperTheme.isDark ? .white : .primary)
+                .cornerRadius(StudyTheme.Radius.pill)
+            }
+            .buttonStyle(.plain)
             
             // 全文研读视图 (R10)
             Button {

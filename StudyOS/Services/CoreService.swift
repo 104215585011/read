@@ -10,6 +10,9 @@ public final class CoreService: CoreServiceProtocol, Sendable {
     public let aiNoteService: AINoteServiceProtocol
     public let localLLMProvider: LocalLLMProviderProtocol?
     public let fullDocumentStudyService: FullDocumentStudyProtocol
+    public let offlineResourceManager: OfflineResourceManagerProtocol
+    public let networkRetryEngine: NetworkResilienceRetryEngineProtocol
+    public let localModelPackageManager: LocalModelPackageManagerProtocol?
 
     public init(
         documentService: DocumentServiceProtocol,
@@ -19,7 +22,10 @@ public final class CoreService: CoreServiceProtocol, Sendable {
         batchExtractionEngine: BatchExtractionProtocol = DocumentBatchExtractionEngine(),
         aiNoteService: AINoteServiceProtocol = AINoteService(),
         localLLMProvider: LocalLLMProviderProtocol? = nil,
-        fullDocumentStudyService: FullDocumentStudyProtocol? = nil
+        fullDocumentStudyService: FullDocumentStudyProtocol? = nil,
+        offlineResourceManager: OfflineResourceManagerProtocol = OfflineResourceManager(),
+        networkRetryEngine: NetworkResilienceRetryEngineProtocol = NetworkResilienceRetryEngine(),
+        localModelPackageManager: LocalModelPackageManagerProtocol? = nil
     ) {
         self.documentService = documentService
         self.readerCoreService = readerCoreService
@@ -32,6 +38,11 @@ public final class CoreService: CoreServiceProtocol, Sendable {
             sandbox: .shared,
             provider: localLLMProvider ?? LocalMockLLMProvider(),
             metadataEngine: MetadataStorageEngine(sandbox: .shared)
+        )
+        self.offlineResourceManager = offlineResourceManager
+        self.networkRetryEngine = networkRetryEngine
+        self.localModelPackageManager = localModelPackageManager ?? LocalModelPackageManager(
+            offlineResourceManager: offlineResourceManager
         )
     }
 
@@ -59,6 +70,9 @@ public final class CoreService: CoreServiceProtocol, Sendable {
             provider: localProvider ?? provider,
             metadataEngine: metadataEngine
         )
+        let offlineRM = OfflineResourceManager(sandbox: sandbox)
+        let retryEngine = NetworkResilienceRetryEngine()
+        let modelPkgMgr = LocalModelPackageManager(offlineResourceManager: offlineRM)
 
         return CoreService(
             documentService: docService,
@@ -68,7 +82,10 @@ public final class CoreService: CoreServiceProtocol, Sendable {
             batchExtractionEngine: extractionEngine,
             aiNoteService: aiNoteSvc,
             localLLMProvider: localProvider,
-            fullDocumentStudyService: fullStudySvc
+            fullDocumentStudyService: fullStudySvc,
+            offlineResourceManager: offlineRM,
+            networkRetryEngine: retryEngine,
+            localModelPackageManager: modelPkgMgr
         )
     }
 

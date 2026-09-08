@@ -32,6 +32,16 @@ public enum StudyTheme {
         /// 阅读器底衬温润纸张色 (Warm Paper Background)
         public static let paperBackground = Color(red: 0.980, green: 0.973, blue: 0.961) // #FAF8F5
         
+        /// 专业护眼纸张色板 (Eye-Care Paper Themes, M4-RELEASE)
+        /// 纯白精细: 极致清晰纯净
+        public static let pureWhite = Color(red: 0.992, green: 0.992, blue: 0.996) // #FDFDFE
+        /// 护眼羊皮纸暖黄: 过滤高能蓝光，温润护眼
+        public static let warmSepia = Color(red: 0.965, green: 0.941, blue: 0.898) // #F6F0E5
+        /// 墨水屏哑光灰: 类电子墨水漫反射质感
+        public static let eInkGray = Color(red: 0.918, green: 0.918, blue: 0.906) // #EAEAE7
+        /// 夜间深邃黑: 低亮度高对比防眩光
+        public static let nightDark = Color(red: 0.118, green: 0.125, blue: 0.141) // #1E2024
+        
         /// 边框与微弱分割线
         public static let border = Color.primary.opacity(0.08)
         public static let divider = Color.primary.opacity(0.06)
@@ -40,6 +50,54 @@ public enum StudyTheme {
         public static let citationHighlight = Color(red: 0.145, green: 0.388, blue: 0.922).opacity(0.85)
         /// 来源聚焦光环底色
         public static let focusRingGlow = Color(red: 0.145, green: 0.388, blue: 0.922).opacity(0.18)
+    }
+
+    // MARK: - 纸张与护眼主题 (Paper & Eye-Care Themes)
+    public enum PaperTheme: String, CaseIterable, Identifiable, Sendable {
+        case pureWhite = "pureWhite"
+        case warmSepia = "warmSepia"
+        case eInkGray = "eInkGray"
+        case nightDark = "nightDark"
+        
+        public var id: String { rawValue }
+        
+        public var displayName: String {
+            switch self {
+            case .pureWhite: return "纯白精细"
+            case .warmSepia: return "羊皮暖黄"
+            case .eInkGray: return "水墨哑光"
+            case .nightDark: return "夜间深邃"
+            }
+        }
+        
+        public var iconName: String {
+            switch self {
+            case .pureWhite: return "doc.plaintext"
+            case .warmSepia: return "sun.max"
+            case .eInkGray: return "newspaper"
+            case .nightDark: return "moon.stars"
+            }
+        }
+        
+        public var backgroundColor: Color {
+            switch self {
+            case .pureWhite: return Colors.pureWhite
+            case .warmSepia: return Colors.warmSepia
+            case .eInkGray: return Colors.eInkGray
+            case .nightDark: return Colors.nightDark
+            }
+        }
+        
+        public var textColor: Color {
+            switch self {
+            case .nightDark: return Color(red: 0.88, green: 0.89, blue: 0.90)
+            default: return Color.primary
+            }
+        }
+        
+        public var isDark: Bool {
+            self == .nightDark
+        }
     }
 
     // MARK: - 间距系统 (Spacing Tokens)

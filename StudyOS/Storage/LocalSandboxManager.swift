@@ -30,12 +30,16 @@ public final class LocalSandboxManager: @unchecked Sendable {
         rootDirectoryURL.appendingPathComponent("Notes", isDirectory: true)
     }
 
+    public var modelsDirectoryURL: URL {
+        rootDirectoryURL.appendingPathComponent("Models", isDirectory: true)
+    }
+
     public var temporaryDirectoryURL: URL {
         rootDirectoryURL.appendingPathComponent("Temp", isDirectory: true)
     }
 
     public func ensureBaseDirectoriesExist() {
-        let dirs = [documentsDirectoryURL, metadataDirectoryURL, notesDirectoryURL, temporaryDirectoryURL]
+        let dirs = [documentsDirectoryURL, metadataDirectoryURL, notesDirectoryURL, modelsDirectoryURL, temporaryDirectoryURL]
         for dir in dirs {
             if !fileManager.fileExists(atPath: dir.path) {
                 try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -64,5 +68,17 @@ public final class LocalSandboxManager: @unchecked Sendable {
 
     public func metadataFileURL(fileName: String) -> URL {
         metadataDirectoryURL.appendingPathComponent("\(fileName).json")
+    }
+
+    public func modelPackageDirectory(packageID: String) -> URL {
+        modelsDirectoryURL.appendingPathComponent(packageID, isDirectory: true)
+    }
+
+    public func modelPackageMetadataURL(packageID: String) -> URL {
+        modelPackageDirectory(packageID: packageID).appendingPathComponent("metadata.json")
+    }
+
+    public func modelPackageFileURL(packageID: String, fileName: String) -> URL {
+        modelPackageDirectory(packageID: packageID).appendingPathComponent(fileName)
     }
 }

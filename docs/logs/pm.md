@@ -63,3 +63,10 @@
 - 2026-09-08T13:40:15+08:00 | UPDATE | Claude1 / 项目经理 | M3-CLOSE | 审阅 Codex2 验收报告与交接文档，核对 PRD R10/R11/R14 基线全部闭环；更新 docs/project/BOARD.md（M3-BE、M3-UI、M3-QA 及 M3 整体更新为 DONE，记录 CI 74 项测试 100% PASS 云端证据，明确自动化与 D 层真机手写走查交付分界）与 docs/project/PLAN.md（M3 CLOSED，新增 M4-RELEASE 规划）。
 - 2026-09-08T13:40:15+08:00 | HANDOFF / END | Claude1 / 项目经理 | M3-CLOSE | 产出正式收口交接文档 docs/handoffs/M3-CLOSE-pm-001.md。宣告 M3 阶段圆满收口（CLOSED / DONE），M4-RELEASE 规划就绪。严格遵循排他规则，未修改业务源码或工程配置。向主协调者（parent）汇报并交接。释放本轮 PM 编辑。
 
+- 2026-09-08T13:41:27+08:00 | READ_ACK | Claude1 / 项目经理 | M4-KICKOFF | 确认收到用户正式推进指令开启 M4-RELEASE 阶段（实体硬件走查准备、Pencil 硬件手势增强、真机走查规程与发布就绪交付）。已重读 AGENTS.md、docs/roles/Claude1-PM.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、docs/project/PLAN.md、docs/product/PRD-v0.1-source.md、docs/backend/CONTRACT-v0.1-draft.md (0.1-draft / M0-BE-REV2) 以及 M3 收口交接 docs/handoffs/M3-CLOSE-pm-001.md 与 docs/qa/M3-VERIFICATION-REPORT.md。
+- 2026-09-08T13:41:27+08:00 | START | M4-KICKOFF | 启动 M4-RELEASE 阶段子任务拆解与授权编排。独占维护 docs/project/**、docs/logs/pm.md、docs/handoffs/M4-KICKOFF-pm-*.md。严禁修改业务源码、工程配置或他人专有目录。更新 BOARD.md（激活 M4-RELEASE 主任务为 IN_PROGRESS，拆解并激活 M4-BE 为 IN_PROGRESS 并授权 Codex1，M4-UI 与 M4-QA 置为 READY），更新 PLAN.md 明确 M4 里程碑目标与阶段细分，产出 M4 启动交接文档 docs/handoffs/M4-KICKOFF-pm-001.md。
+- 2026-09-08T13:43:00+08:00 | UPDATE | Claude1 / 项目经理 | M4-KICKOFF | 更新 docs/project/BOARD.md（M4-RELEASE 置为 IN_PROGRESS，拆解并激活 M4-BE 为 IN_PROGRESS，M4-UI 与 M4-QA 置为 READY，记录 10 大物理检验流与权限边界）与 docs/project/PLAN.md（M4-RELEASE 置为 IN_PROGRESS，增加里程碑定义与子任务细分）。产出 M4 启动交接文档 docs/handoffs/M4-KICKOFF-pm-001.md。
+- 2026-09-08T13:43:00+08:00 | HANDOFF / END | Claude1 / 项目经理 | M4-KICKOFF | M4 启动编排完成。正式授权 Codex1 启动 M4-BE（CoreML调度升级、离线资源沙盒与弱网重试策略）实施；Claude2 与 Codex2 状态置为 READY 待命。未修改业务源码或工程配置。向主协调者（parent）汇报并交接。释放本轮 PM 编辑权限。
+
+
+

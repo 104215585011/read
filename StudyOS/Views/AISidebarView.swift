@@ -112,6 +112,57 @@ public struct AISidebarView: View {
                 .buttonStyle(.plain)
             }
             
+            // 网络弹性与弱网重试/本地降级状态指示条 (M4-RELEASE)
+            HStack(spacing: 6) {
+                Image(systemName: viewModel.networkResilienceState.iconName)
+                    .font(.caption2)
+                    .foregroundColor(viewModel.networkResilienceState.tintColor)
+                
+                Text(viewModel.networkResilienceState.displayText)
+                    .font(.caption2)
+                    .foregroundColor(viewModel.networkResilienceState.tintColor)
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                // 弱网重试统计徽标
+                if let stats = viewModel.retryEngineStats, stats.totalRetries > 0 {
+                    Text("重试: \(stats.successfulRetries)/\(stats.totalRetries)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(StudyTheme.Colors.accent.opacity(0.15))
+                        .foregroundColor(StudyTheme.Colors.accent)
+                        .clipShape(Capsule())
+                }
+                
+                // 网络模拟与诊断快捷菜单 (供真机走查与恢复测试)
+                Menu {
+                    Button("模拟网络: 云端可用") {
+                        Task { await viewModel.updateSimulatedNetworkState(.reachable) }
+                    }
+                    Button("模拟网络: 弱网重试") {
+                        Task { await viewModel.updateSimulatedNetworkState(.weak) }
+                    }
+                    Button("模拟网络: 离线断网") {
+                        Task { await viewModel.updateSimulatedNetworkState(.unreachable) }
+                    }
+                    Divider()
+                    Button("刷新连通性状态") {
+                        Task { await viewModel.refreshNetworkAndOfflineResilience() }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(viewModel.networkResilienceState.tintColor.opacity(0.08))
+            .cornerRadius(StudyTheme.Radius.sm)
+            
             // 端侧离线模型状态指示条 (R14)
             if let status = viewModel.localModelStatus {
                 HStack(spacing: 6) {

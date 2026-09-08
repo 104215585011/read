@@ -1,6 +1,6 @@
 # StudyOS 项目看板
 
-更新：2026-09-08T13:38:35+08:00。M0 文档阶段、M1-SETUP 原生脚手架阶段、M2 核心阅读流/批注笔迹持久化/AI 交互联调阶段、以及 M3 阶段（本地离线模型适配、长文档分批研读与 AI Notes 卡片系统）均已全量验收收口完成（DONE）；GitHub Actions CI 真实云端流水线在 Commit 3636ac9 上全部 74 项自动化测试 100% 通过（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器，0 失败，0 告警，0 异常跳过）；主任务表 M3、M3-BE、M3-UI、M3-QA 全量更新为 DONE；明确自动化测试 PASS 与真实 iPad 硬件 Apple Pencil 物理走查（延迟、压感、倾斜）的交付分界与后续排期；平台为 iPad 原生。
+更新：2026-09-08T13:41:27+08:00。M0/M1/M2/M3 阶段均已全量验收收口完成（DONE）；用户已正式下达推进指令开启 M4-RELEASE 阶段（实体硬件走查准备、Pencil 硬件手势增强、真机走查规程与发布就绪交付）。M4-RELEASE 整体状态更新为 IN_PROGRESS；M4-BE 置为 IN_PROGRESS 并正式授权 Codex1 启动实施，M4-UI 与 M4-QA 置为 READY 待命；平台为 iPad 原生。
 
 | 任务 | 负责人 | 依赖 | 排他可写路径 | 验收条件 | 状态 |
 |---|---|---|---|---|---|
@@ -18,8 +18,12 @@
 | M3-BE 离线 Provider 与分批抽取引擎 | 项目后端 Codex1 | M2 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`Package.swift`、`docs/backend/**`、`docs/logs/backend.md` | 长文档异步分批抽取引擎（落实 R10 P0 后端支撑）、端侧离线 LLM Provider 抽象协议与调度器、R11 AI Notes 数据模型与持久化服务 | DONE |
 | M3-UI 全屏全文学习视图与离线设置界面 | UI 总监 Claude2 | M3-BE 接口草案与模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | R10 全屏全文学习视图、概念/考点脑图结构卡片、AI 助学笔记卡片沉淀、Provider 切换与离线设置界面 | DONE |
 | M3-QA 离线套件与分批抽取验证 | 项目测试 Codex2 | M3-BE / M3-UI 交付物 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 8 大测试类 74 项自动化测试（涵盖 26 项 M3 专项测试），云端 CI (macOS-14 / iPadOS 17.5) 74/74 100% PASS，验收报告落盘 | DONE |
+| M4-RELEASE 实体硬件走查准备与发布就绪 | Codex1 + Claude2 + Codex2 | M3 收口 | 模块排他目录（见 M4 规划） | 实体硬件走查准备、CoreML/沙盒/重试策略升级、Pencil 硬件手势支持与主题打磨、物理走查规程手册就绪、发布交付就绪 | IN_PROGRESS |
+| M4-BE 端侧模型调度升级与沙盒/重试策略 | 项目后端 Codex1 | M3 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`Package.swift`、`docs/backend/**`、`docs/logs/backend.md` | 端侧 CoreML / 本地模型加载调度契约升级、离线资源沙盒管理、弱网断线自动重试与恢复策略 | IN_PROGRESS |
+| M4-UI 硬件手势支持、底色主题与视口打磨 | UI 总监 Claude2 | M4-BE 接口与契约协议 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | Apple Pencil 硬件手势支持（PencilInteraction 双击切换橡皮/笔、笔尖悬停 Hover 预测发光环）、深浅阅读底色/纸张主题切换、真机 UI 视口打磨 | READY |
+| M4-QA 物理走查手册与发布验证矩阵 | 项目测试 Codex2 | M4-BE / M4-UI 交付物与走查规程 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 编写《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`），覆盖压感/倾斜/延迟/防误触/手势切换/离线长文档分批等 10 大物理检验流 | READY |
 
-每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M0、M1-SETUP、M2、M3 已全量收口闭环（DONE）。
+每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M0、M1-SETUP、M2、M3 已全量收口闭环（DONE）；M4-RELEASE 当前推进中（IN_PROGRESS）。
 
 
 
@@ -351,4 +355,36 @@ PM Claude1 正式将 **M2-BE、M2-UI、M2-QA 及 M2 整体状态更新为 DONE**
 ### 4. M3 收口判定
 依据真实 CI 流水线 74 项全绿灯测试证据与 QA 验收报告，M3 各项准入、实现与自动化测试验收条件全部满足。
 PM Claude1 正式将 **M3-BE、M3-UI、M3-QA 及 M3 整体状态更新为 DONE**，宣告本地离线模型适配、长文档分批研读与 AI Notes 阶段圆满收口。
+
+## M4-RELEASE 启动与任务授权记录
+
+2026-09-08T13:41:27+08:00：用户已正式下达推进指令开启 **M4-RELEASE 阶段（实体硬件走查准备、Pencil 硬件手势增强、真机走查规程与发布就绪交付）**。
+PM Claude1 完成 M4-RELEASE 任务拆解、排他目录划分与子任务授权编排。将 M4-RELEASE 整体状态更新为 **`IN_PROGRESS`**。
+
+### 1. 子任务拆解与状态矩阵
+
+| 任务编号 | 责任人 | 状态 | 排他可写目录 | 核心目标与交付成果 |
+|---|---|---|---|---|
+| **M4-BE** | 项目后端 Codex1 | **IN_PROGRESS** (正式授权即刻开工) | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`Package.swift`、`docs/backend/**`、`docs/logs/backend.md` | 端侧 CoreML / 本地模型加载调度契约升级、离线资源沙盒管理、弱网断线自动重试与恢复策略 |
+| **M4-UI** | UI 总监 Claude2 | **READY** (待命，待 BE 契约/协议就绪后推进) | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | Apple Pencil 硬件手势支持（PencilInteraction 双击切换橡皮/笔、笔尖悬停 Hover 预测发光环）、深浅阅读底色/纸张主题切换、真机 UI 视口打磨 |
+| **M4-QA** | 项目测试 Codex2 | **READY** (待命，推进规程编写与验收矩阵) | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 编写《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`），覆盖压感/倾斜/延迟/防误触/手势切换/离线长文档分批等 10 大物理检验流 |
+
+### 2. 10 大真机物理检验流规划（D Level Manual Walkthrough Streams）
+为确保发布版本在真实 iPad 硬件与 Apple Pencil 上的卓越体验，QA 将编写标准规程手册，覆盖以下 10 大物理检验流：
+1. **Apple Pencil 物理压感与线条动态响应**（笔尖压力与线条粗细线性映射）；
+2. **Apple Pencil 笔锋物理倾斜角度走查**（侧锋阴影渲染与阻尼感）；
+3. **PencilKit 极低书写延迟与高刷采样**（ProMotion 120Hz 跟手性走查）；
+4. **手掌贴屏防误触走查（Palm Rejection）**（手掌自然搭屏书写无杂点、无异常视口抖动）；
+5. **Apple Pencil 硬件手势流转**（笔身双击切换笔/橡皮擦、Hover 笔尖悬停发光预测环）；
+6. **离线长文档分批抽取与内存峰值走查**（百页文档分批加载流转，无 OOM 与前台卡死）；
+7. **本地离线模型加载与长时功耗/发热走查**（真机 NPU / 统一内存调度与电量损耗控制）；
+8. **弱网断网与云端/本地 Provider 无缝热切换**（飞行模式、弱网重试与透明降级）；
+9. **深浅色与多种纸张背景主题无缝切换**（日光/夜间护眼模式与墨水对比度走查）；
+10. **多窗口、分屏与横竖屏旋转自适应视口打磨**（Stage Manager / Split View 下笔迹与 PDF 几何坐标绝对对齐）。
+
+### 3. 协作规则与写者权限控制
+1. **单一工程配置写者（Single Config Writer）**：Codex1 独占 `Package.swift` 及全局构建配置维护权；
+2. **排他目录隔离**：各角色严禁越权修改非排他目录或他人日志；
+3. **推进流转**：Codex1 完成 M4-BE 交付物后向 Claude2 和 Codex2 触发下游任务，QA 编写物理走查手册并执行发布就绪检验。
+
 

@@ -25,13 +25,18 @@ public actor LocalMockLLMProvider: LocalLLMProviderProtocol {
         )
     }
 
+    public nonisolated var runtimeKind: LocalRuntimeKind {
+        localConfig.runtimeKind
+    }
+
     public var inferenceStatus: LocalModelInferenceStatus {
         LocalModelInferenceStatus(
             isReady: _state == .ready,
             state: _state,
             memoryUsageBytes: _state == .ready ? 512 * 1024 * 1024 : 0,
             loadedModelID: _state == .ready ? localConfig.modelID : nil,
-            errorMessage: _errorMessage
+            errorMessage: _errorMessage,
+            runtimeKind: localConfig.runtimeKind
         )
     }
 

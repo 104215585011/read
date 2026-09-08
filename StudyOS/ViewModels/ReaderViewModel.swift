@@ -32,6 +32,53 @@ public struct AIMessageItem: Identifiable, Sendable {
     }
 }
 
+/// 客户端网络韧性与端侧降级 UI 状态 (M4-RELEASE)
+public enum NetworkResilienceUIState: Sendable, Equatable {
+    case cloudAvailable
+    case retrying(attempt: Int, maxAttempts: Int, reason: String)
+    case switchedToLocal(modelName: String)
+    case offlineUnavailable(reason: String)
+    
+    public var displayText: String {
+        switch self {
+        case .cloudAvailable:
+            return "云端可用 (高速)"
+        case .retrying(let attempt, let maxAttempts, let reason):
+            return "弱网重试中 (\(attempt)/\(maxAttempts)): \(reason)"
+        case .switchedToLocal(let modelName):
+            return "已无缝切换至端侧本地模型 (\(modelName))"
+        case .offlineUnavailable(let reason):
+            return "离线未连接 (\(reason))"
+        }
+    }
+    
+    public var iconName: String {
+        switch self {
+        case .cloudAvailable:
+            return "cloud.fill"
+        case .retrying:
+            return "arrow.triangle.2.circlepath"
+        case .switchedToLocal:
+            return "cpu.fill"
+        case .offlineUnavailable:
+            return "wifi.slash"
+        }
+    }
+    
+    public var tintColor: Color {
+        switch self {
+        case .cloudAvailable:
+            return StudyTheme.Colors.success
+        case .retrying:
+            return StudyTheme.Colors.accent
+        case .switchedToLocal:
+            return StudyTheme.Colors.primary
+        case .offlineUnavailable:
+            return StudyTheme.Colors.danger
+        }
+    }
+}
+
 /// 阅读器工作区主 ViewModel
 /// 协调 ReaderAdapter、AI 侧栏、选区菜单与来源定位动画 (UIREV-01, UIREV-02, UIREV-04)
 @MainActor
@@ -80,6 +127,12 @@ public final class ReaderViewModel: ObservableObject {
     @Published public var aiNotes: [AINoteCard] = []
     @Published public var isAINotesOpen: Bool = false
     @Published public var localModelStatus: LocalModelInferenceStatus?
+    
+    // MARK: - M4-UI 纸张护眼主题与网络弹性
+    @Published public var selectedPaperTheme: StudyTheme.PaperTheme = .warmSepia
+    @Published public var networkResilienceState: NetworkResilienceUIState = .cloudAvailable
+    @Published public var retryEngineStats: RetryEngineStats?
+    @Published public var offlinePackages: [ModelPackageMetadata] = []
     
     // 当前在途请求追踪标识 (用于与后端 AIServiceActor cancel 交互)
     private var activeRequestID: String?
@@ -150,6 +203,7 @@ public final class ReaderViewModel: ObservableObject {
         
         await loadAINotes()
         await checkLocalLLMStatus()
+        await refreshNetworkAndOfflineResilience()
     }
     
     // MARK: - 来源跳转
@@ -878,6 +932,64 @@ public final class ReaderViewModel: ObservableObject {
         await localProvider.unloadModel()
         self.localModelStatus = await localProvider.inferenceStatus
         displayToast("端侧模型已释放")
+    }
+
+    // MARK: - M4-BE: 弱网重试恢复与端侧离线资源管理 (R12, R14)
+    
+    /// 刷新网络连通性、弹性重试统计与离线模型资源包
+    public func refreshNetworkAndOfflineResilience() async {
+        // 1. 读取网络弹性重试引擎统计 (R12)
+        let stats = await coreService.networkRetryEngine.getStats()
+        self.retryEngineStats = stats
+        
+        // 2. 读取端侧离线资源管理器已注册的离线模型包列表 (R14)
+        let packages = await coreService.offlineResourceManager.listPackages()
+        self.offlinePackages = packages
+        
+        // 3. 评估网络连通性与热降级调度状态
+        if let packageManager = coreService.localModelPackageManager {
+            let net = await packageManager.networkState
+            let decision = await packageManager.evaluateFallback(preferredLocalPackageID: nil)
+            
+            switch decision {
+            case .useCloud:
+                self.networkResilienceState = .cloudAvailable
+            case .fallbackToLocal(let reason):
+                let activePkg = await packageManager.getActivePackage()
+                let name = activePkg?.modelName ?? "端侧 CoreML"
+                self.networkResilienceState = .switchedToLocal(modelName: "\(name) (\(reason))")
+            case .failImmediately(let reason):
+                if net == .unreachable {
+                    self.networkResilienceState = .offlineUnavailable(reason: reason.isEmpty ? "网络已断开且无就绪离线模型" : reason)
+                } else {
+                    self.networkResilienceState = .cloudAvailable
+                }
+            }
+        } else {
+            self.networkResilienceState = .cloudAvailable
+        }
+    }
+    
+    /// 走查辅助：切换网络模拟状态 (用于真机走查与弱网恢复测试)
+    public func updateSimulatedNetworkState(_ state: NetworkReachabilityState) async {
+        if let packageManager = coreService.localModelPackageManager {
+            await packageManager.updateNetworkState(state)
+            await refreshNetworkAndOfflineResilience()
+            displayToast("网络状态已更新为: \(state.rawValue)")
+        }
+    }
+    
+    /// 走查辅助：注册并校验端侧模型包 (完整性 SHA-256 检验)
+    public func verifyAndRegisterModelPackage(_ metadata: ModelPackageMetadata) async -> PackageIntegrityResult? {
+        do {
+            try await coreService.offlineResourceManager.registerPackage(metadata)
+            let result = try await coreService.offlineResourceManager.verifyPackageIntegrity(packageID: metadata.packageID)
+            await refreshNetworkAndOfflineResilience()
+            return result
+        } catch {
+            displayToast("模型包校验失败: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     public func displayToast(_ message: String) {
