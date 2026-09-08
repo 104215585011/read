@@ -53,10 +53,11 @@ public actor FullDocumentStudyService: FullDocumentStudyProtocol {
             sourceAnchors: [
                 SourceAnchor(
                     documentID: documentID,
+                    documentRevision: document.revision,
                     pageIndex0: 0,
                     paragraphID: "para_\(documentID)_0_0",
                     quote: "核心理论体系与基础假设",
-                    precision: .exact
+                    precision: .region
                 )
             ]
         )
@@ -69,10 +70,11 @@ public actor FullDocumentStudyService: FullDocumentStudyProtocol {
             sourceAnchors: [
                 SourceAnchor(
                     documentID: documentID,
+                    documentRevision: document.revision,
                     pageIndex0: max(0, min(1, document.pageCount - 1)),
                     paragraphID: "para_\(documentID)_1_0",
                     quote: "应用协议与规范契约定义",
-                    precision: .exact
+                    precision: .region
                 )
             ]
         )
@@ -93,10 +95,11 @@ public actor FullDocumentStudyService: FullDocumentStudyProtocol {
             sourceAnchors: [
                 SourceAnchor(
                     documentID: documentID,
+                    documentRevision: document.revision,
                     pageIndex0: 0,
                     paragraphID: "para_\(documentID)_0_1",
                     quote: "并发竞争与状态机收敛规则",
-                    precision: .approximate
+                    precision: .region
                 )
             ]
         )
@@ -114,8 +117,9 @@ public actor FullDocumentStudyService: FullDocumentStudyProtocol {
             ],
             anchor: SourceAnchor(
                 documentID: documentID,
+                documentRevision: document.revision,
                 pageIndex0: 0,
-                precision: .pageOnly
+                precision: .page
             )
         )
 

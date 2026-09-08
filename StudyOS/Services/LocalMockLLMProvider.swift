@@ -1,12 +1,11 @@
 import Foundation
 
 /// 本地端侧离线 Mock Provider 实现 (LocalMockLLMProvider)
-/// 零外部依赖，纯原生 Swift Concurrency，模拟离线端侧模型推理与加载状态机
-public final class LocalMockLLMProvider: LocalLLMProviderProtocol, @unchecked Sendable {
-    public let profileID: String
-    public let localConfig: LocalModelConfig
+/// 零外部依赖，纯原生 Swift Concurrency，模拟离线端侧模型推理与加载状态机 (Actor 隔离)
+public actor LocalMockLLMProvider: LocalLLMProviderProtocol {
+    public nonisolated let profileID: String
+    public nonisolated let localConfig: LocalModelConfig
 
-    private let lock = NSLock()
     private var _state: ModelState = .ready
     private var _errorMessage: String?
 
@@ -18,7 +17,7 @@ public final class LocalMockLLMProvider: LocalLLMProviderProtocol, @unchecked Se
         self.localConfig = localConfig
     }
 
-    public var snapshot: ProviderSnapshot {
+    public nonisolated var snapshot: ProviderSnapshot {
         ProviderSnapshot(
             profileID: profileID,
             endpoint: "offline://local-device-inference",
@@ -27,44 +26,32 @@ public final class LocalMockLLMProvider: LocalLLMProviderProtocol, @unchecked Se
     }
 
     public var inferenceStatus: LocalModelInferenceStatus {
-        get async {
-            lock.lock()
-            defer { lock.unlock() }
-            return LocalModelInferenceStatus(
-                isReady: _state == .ready,
-                state: _state,
-                memoryUsageBytes: _state == .ready ? 512 * 1024 * 1024 : 0,
-                loadedModelID: _state == .ready ? localConfig.modelID : nil,
-                errorMessage: _errorMessage
-            )
-        }
+        LocalModelInferenceStatus(
+            isReady: _state == .ready,
+            state: _state,
+            memoryUsageBytes: _state == .ready ? 512 * 1024 * 1024 : 0,
+            loadedModelID: _state == .ready ? localConfig.modelID : nil,
+            errorMessage: _errorMessage
+        )
     }
 
     public func loadModel() async throws {
-        lock.lock()
         _state = .loading
         _errorMessage = nil
-        lock.unlock()
 
         // 模拟端侧模型载入内存过程
         try? await Task.sleep(nanoseconds: 20_000_000)
 
-        lock.lock()
         _state = .ready
-        lock.unlock()
     }
 
     public func unloadModel() async {
-        lock.lock()
         _state = .unloaded
         _errorMessage = nil
-        lock.unlock()
     }
 
     public func isReady() async -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return _state == .ready
+        _state == .ready
     }
 
     /// 模拟流式生成
@@ -72,8 +59,7 @@ public final class LocalMockLLMProvider: LocalLLMProviderProtocol, @unchecked Se
         messages: [LLMMessage],
         options: LLMCompletionOptions
     ) async throws -> AsyncThrowingStream<LLMChunk, Error> {
-        let ready = await isReady()
-        if !ready {
+        if _state != .ready {
             // 若处于未就绪状态，尝试按需自动拉起
             try await loadModel()
         }
