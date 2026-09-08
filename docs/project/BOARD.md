@@ -22,8 +22,12 @@
 | M4-BE 端侧模型调度升级与沙盒/重试策略 | 项目后端 Codex1 | M3 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`Package.swift`、`docs/backend/**`、`docs/logs/backend.md` | 端侧 CoreML / 本地模型加载调度契约升级、离线资源沙盒管理、弱网断线自动重试与恢复策略 | DONE |
 | M4-UI 硬件手势支持、底色主题与视口打磨 | UI 总监 Claude2 | M4-BE 接口与契约协议 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | Apple Pencil 硬件手势支持（PencilInteraction 双击切换橡皮/笔、笔尖悬停 Hover 预测发光环）、深浅阅读底色/纸张主题切换、真机 UI 视口打磨 | DONE |
 | M4-QA 物理走查手册与发布验证矩阵 | 项目测试 Codex2 | M4-BE / M4-UI 交付物与走查规程 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 编写《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`），覆盖压感/倾斜/延迟/防误触/手势切换/离线长文档分批等 10 大物理检验流 | DONE |
+| MODEL-HUB 大模型配置中心与平铺拖拽自适应分栏 | Codex1 + Claude2 + Codex2 | M4-RELEASE 收口 | 模块排他目录（见下文） | 平铺无遮挡分栏与竖向拖拽手柄、三档字号排版自适应、多模型切换与 Keychain 存储、ChatGPT Plus 网页直连、冷启动学术种子数据、全量 127 项自动化测试 100% PASS | DONE |
+| MODEL-HUB-BE 多模型领域模型、Keychain 存储与动态注册表 | 项目后端 Codex1 | M4-RELEASE 收口 | `StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Services/`、`StudyOS/Contracts/`、`docs/backend/**`、`docs/logs/backend.md` | AIModelProfile（6款主流预设）、KeychainStorageManager（安全存储与降级）、ModelProviderRegistry（动态 Provider 实例化与握手探测）、LocalSandboxManager 种子学术教材注入 | DONE |
+| MODEL-HUB-UI 可拖拽竖向分割条、自适应排版与模型设置弹窗 | UI 总监 Claude2 | MODEL-HUB-BE 接口与模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | ReaderContainerView 平铺可拖拽分割条（左右无极调整与底栏比例指示）、AISidebarView 三档流式自适应排版、ModelConfigurationSheet（已启用/添加API/ChatGPT Plus 网页直连三标签） | DONE |
+| MODEL-HUB-QA 模型中心与 Keychain 安全自动化测试套件 | 项目测试 Codex2 | MODEL-HUB-BE / UI 交付物 | `StudyOSTests/`、`docs/qa/**`、`docs/logs/qa.md` | ModelConfigurationTests 4 大类 21 项自动化测试（编解码/Keychain/动态切换/握手探测），全量 10 个测试文件 127 项用例 100% PASS，Swift 6 严格并发零警告 | DONE |
 
-每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M0、M1-SETUP、M2、M3、M4-RELEASE 全量收口闭环（DONE）。全案里程碑 100% 达成。
+每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M0、M1-SETUP、M2、M3、M4-RELEASE 以及 MODEL-HUB 体验打磨 Sprint 全量收口闭环（DONE）。全案里程碑 100% 达成。
 
 
 
@@ -452,5 +456,24 @@ PM Claude1 审阅 QA 验收报告与交付物，确认需求基线（PRD R01–R
 - **规程手册交付**：Codex2 已交付《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`，文档编号：`M4-QA-MANUAL-001`，版本：`v1.0-release`），包含详尽前置条件、操作步骤、物理预期、量化通过准则、缺陷分级与通过性判定总则；
 - **现场走查执行**：产品体验团队与现场测试员可直接依据该规程手册在真实 iPad 硬件与 Apple Pencil 上进行物理走查与最终发布签发。
 
+## MODEL-HUB 体验打磨与大模型中心收口记录
 
-
+2026-09-08T15:35:00+08:00：响应用户针对阅读主界面排版与大模型配置的核心改进建议，团队完成了 **App UI Polish & Model Hub Sprint** 并全量通过 GitHub Actions CI 真实云端流水线验证：
+1. **平铺式可拖拽竖向分割手柄与自适应排版（UI Claude2）**：
+   - 在 `ReaderContainerView` 中移除悬浮窗，改为左侧 PDF 阅读视口与右侧 AI 助学侧栏严格平齐平铺；
+   - 竖向分割条带有三圆点微手柄胶囊，支持手指与 Apple Pencil 左右无极拖动，具备最小 260pt / 最大 `totalWidth - 360pt` 边界保护；
+   - 底栏实时显示分栏比例（如 `PDF 65% | AI 35%`）；
+   - AI 侧栏引入三档自适应流式排版（紧凑 `<320pt`、标准 `320~460pt`、展开 `>460pt`），展开模式自动开启 `LazyVGrid` 双列并排要点卡片；
+2. **多模型配置中心与安全凭据管理（Backend Codex1）**：
+   - 落地 `AIModelProfile`，预设 DeepSeek-R1、GPT-4o、Claude 3.5 Sonnet、Gemini 1.5 Pro、ChatGPT Plus 网页版、iPad 本地 CoreML 等 6 款旗舰配置；
+   - 原生 `KeychainStorageManager` 实现硬件级安全区存储与模拟器/无 Entitlements 内存平滑降级；
+   - 动态 `ModelProviderRegistry` 实现多 Provider 缓存路由与真实握手探测 `testConnection`；
+   - `LocalSandboxManager` 自动播种《Chapter 4: 线性代数与深度学习基础.pdf》学术样例，包含 SVD 重点高亮、Apple Pencil 手写批注与助学问答；
+3. **大模型配置弹窗与 ChatGPT Plus 网页直连（UI Claude2）**：
+   - 顶栏常驻模型选择胶囊（如 `DeepSeek-R1 ▾`），点击调起 Apple HIG 原生三标签弹窗（已启用模型 / 添加自定义 API / ChatGPT Plus 网页直连）；
+   - 提供官方 API Key 配置、Base URL 代理、显示/隐藏眼睛按钮与即时延迟握手测速；
+   - 专为付费 Plus 用户设计 WebKit 会话免 API Key 直连指南与通道，并标注 Google Gemini 每日 1500 次永久免费额度；
+4. **自动化测试与质量保障（QA Codex2）**：
+   - 交付 `StudyOSTests/ModelConfigurationTests.swift` 专有测试套件（4 大测试类，21 项测试用例）；
+   - 全工程测试套件扩充至 10 个测试文件、127 项自动化测试用例，在 GitHub Actions CI（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器）上 **127/127 100% 全部 PASS**，Swift 6 严格并发检查零警告；
+5. **收口判定**：`MODEL-HUB`、`MODEL-HUB-BE`、`MODEL-HUB-UI`、`MODEL-HUB-QA` 全部标记为 **DONE**。

@@ -72,6 +72,10 @@
 - 2026-09-08T14:05:30+08:00 | START | M4-CLOSE | 启动 M4-RELEASE 阶段收口与项目全里程碑闭环。对照需求基线（PRD R01–R17，重点 R03 批注、R12 网络高可用、R14 离线模型/沙盒及真机物理走查）逐项核验；更新 BOARD.md (M4-BE/UI/QA 及整体 M4-RELEASE 更新为 DONE，记录 CI 106/106 PASS 云端证据，记录项目全里程碑 100% 达成，记录真机走查规程指南就绪交接)、PLAN.md (全里程碑达成收口与发布就绪状态总结)；输出 docs/handoffs/M4-CLOSE-pm-001.md。独占维护 docs/project/**、docs/logs/pm.md、docs/handoffs/M4-CLOSE-pm-*.md。严禁修改业务源码或工程配置。
 - 2026-09-08T14:06:45+08:00 | UPDATE | Claude1 / 项目经理 | M4-CLOSE | 更新 docs/project/BOARD.md（M4-BE、M4-UI、M4-QA 以及 M4-RELEASE 整体状态更新为 DONE，记录 GitHub Actions CI 在 Commit bf131d6 上 106 项测试全量 PASS 真实云端证据，记录全项目里程碑 M0~M4 100% 闭环达成，记录现场真机物理走查手册交接）与 docs/project/PLAN.md（M4-RELEASE CLOSED，全里程碑收口与发布就绪总结）。产出 M4 收口交接文档 docs/handoffs/M4-CLOSE-pm-001.md。
 - 2026-09-08T14:06:45+08:00 | HANDOFF / END | Claude1 / 项目经理 | M4-CLOSE | M4-RELEASE 阶段正式收口（CLOSED / DONE）。StudyOS 原生 iPadOS 客户端全链路研发、契约架构、Swift 6 严格并发模式安全加固与 CI 云端 106 项自动化测试 100% 绿灯全量闭环。现场真机走查手册 MANUAL-WALKTHROUGH-GUIDE.md 就绪交付。全项目里程碑 100% 达成，发布就绪（Release Ready）。未修改业务源码或工程配置。向主协调者（parent）汇报并正式交接。释放 PM 编辑权限。
+- 2026-09-08T15:35:00+08:00 | READ_ACK | Claude1 / 项目经理 | MODEL-HUB-CLOSE | 已读 AGENTS.md、Claude1-PM.md、WORKFLOW.md、BOARD.md、PLAN.md、docs/handoffs/MODEL-HUB-BE-backend-001.md、docs/handoffs/MODEL-HUB-BE-FIX-backend-001.md、docs/handoffs/MODEL-HUB-BE-FIX2-backend-001.md、docs/handoffs/MODEL-HUB-UI-ui-001.md、docs/handoffs/MODEL-HUB-QA-qa-001.md 以及 docs/handoffs/MODEL-HUB-QA-FIX-qa-001.md。确认 CI 云端流水线全量 127 项测试 100% 全部通过（Commit 7b7e8f2，macOS-14, Xcode 15.4, iPadOS 17.5 模拟器，0 错误，0 告警）。
+- 2026-09-08T15:36:00+08:00 | START | MODEL-HUB-CLOSE | 启动 App UI Polish & Model Hub Sprint 验收收口与看板闭环。独占维护 docs/project/**、docs/logs/pm.md、docs/handoffs/MODEL-HUB-CLOSE-pm-*.md。更新 BOARD.md（记录 MODEL-HUB 体验打磨成果与 127 项测试 PASS 云端证据，将相关子任务置为 DONE），输出 docs/handoffs/MODEL-HUB-CLOSE-pm-001.md。
+- 2026-09-08T15:37:00+08:00 | UPDATE / HANDOFF / END | Claude1 / 项目经理 | MODEL-HUB-CLOSE | 完成 docs/project/BOARD.md 更新（MODEL-HUB、BE、UI、QA 全量置为 DONE，全案 127 项自动化测试闭环通过）。输出收口交接文档 docs/handoffs/MODEL-HUB-CLOSE-pm-001.md。宣告 Model Hub 与平铺拖拽自适应排版体验打磨圆满收口。向主协调者汇报。释放 PM 编辑权限。
+
 
 
 
