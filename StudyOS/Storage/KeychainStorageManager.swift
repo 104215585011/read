@@ -76,7 +76,7 @@ public actor KeychainStorageManager: KeychainStorageManagerProtocol {
 
     /// 删除凭据
     public func deleteSecret(forKey key: String) async throws -> Bool {
-        inMemoryFallback.removeValue(forKey: key)
+        let hadInMemory = inMemoryFallback.removeValue(forKey: key) != nil
 
         #if canImport(Security)
         let query: [String: Any] = [
@@ -85,7 +85,7 @@ public actor KeychainStorageManager: KeychainStorageManagerProtocol {
             kSecAttrAccount as String: key
         ]
         let status = SecItemDelete(query as CFDictionary)
-        return status == errSecSuccess || status == errSecItemNotFound
+        return status == errSecSuccess || status == errSecItemNotFound || status == errSecMissingEntitlement || hadInMemory
         #else
         return true
         #endif

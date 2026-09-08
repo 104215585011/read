@@ -325,3 +325,13 @@
    - ConnectionHandshakeTests (4项)：端侧 CoreML 神经引擎握手零网络成功（延迟 ≤ 10ms）、ChatGPT Plus Web 会话探测连通正常、未配置 API Key 时的优雅阻断提示、非法 URL 端点握手拦截；
 3. 严格遵循纯原生与 Swift 6 Strict Concurrency 并发安全：使用 Actor 隔离与线程安全锁机制，无数据竞争隐患；
 4. 交付交接文档 docs/handoffs/MODEL-HUB-QA-qa-001.md。因 Windows 宿主无 Xcode/Swift 工具链，按 QA 客观严谨准则将执行状态真实标为 NOT_RUN，绝不虚报 PASS。已向主协调者汇报。释放本轮 QA 专有写入权限。
+
+## 2026-09-08T15:32:00+08:00 READ_ACK / ACCEPTED / START · MODEL-HUB-QA-FIX
+按照 WORKFLOW 规范记录真实系统时间戳。收到 CI 流水线关于 M4BackendTests.swift 中 lock 在 async 方法内部调用触发的 Swift 6 Concurrency 告警修复指令。
+已读 AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md。排他维护 StudyOSTests/M4BackendTests.swift、docs/logs/qa.md 与 docs/handoffs/MODEL-HUB-QA-*.md。
+
+## 2026-09-08T15:32:45+08:00 HANDOFF / END · MODEL-HUB-QA-FIX
+完成 M4BackendTests.swift 中 M4MockCloudLLMProvider 锁机制重构：
+1. 抽取私有同步辅助方法 incrementCallCountAndGetHandler()，在非异步作用域中使用 lock.lock() 和 defer { lock.unlock() } 进行状态递增与闭包提取；
+2. 在 streamCompletion(messages:options:) async throws 中调用该同步方法获取 handler，彻底消除在 async 上下文中使用 NSLock 的 Swift 6 Concurrency 告警；
+3. 交付交接文档 docs/handoffs/MODEL-HUB-QA-FIX-qa-001.md。代码人工静态审查 100% 通过。释放本轮 QA 专有写入权限。

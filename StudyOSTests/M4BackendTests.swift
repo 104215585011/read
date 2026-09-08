@@ -38,14 +38,18 @@ private final class M4MockCloudLLMProvider: LLMProviderProtocol, @unchecked Send
         lock.unlock()
     }
 
+    private func incrementCallCountAndGetHandler() -> (@Sendable ([LLMMessage], LLMCompletionOptions) async throws -> AsyncThrowingStream<LLMChunk, Error>)? {
+        lock.lock()
+        defer { lock.unlock() }
+        _callCount += 1
+        return _streamHandler
+    }
+
     func streamCompletion(
         messages: [LLMMessage],
         options: LLMCompletionOptions
     ) async throws -> AsyncThrowingStream<LLMChunk, Error> {
-        lock.lock()
-        _callCount += 1
-        let handler = _streamHandler
-        lock.unlock()
+        let handler = incrementCallCountAndGetHandler()
 
         if let handler = handler {
             return try await handler(messages, options)

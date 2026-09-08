@@ -51,7 +51,7 @@ public struct AIModelProfile: Identifiable, Codable, Sendable, Hashable {
         self.modelIdentifier = modelIdentifier
         self.isReasoningModel = isReasoningModel
         self.authMethod = authMethod
-        self.apiKeyStorageKey = apiKeyStorageKey ?? "keychain_apikey_\(id)"
+        self.apiKeyStorageKey = authMethod == .apiKey ? (apiKeyStorageKey ?? "keychain_apikey_\(id)") : apiKeyStorageKey
         self.contextWindowTokens = contextWindowTokens
         self.isDefault = isDefault
     }
