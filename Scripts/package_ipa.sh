@@ -40,7 +40,12 @@ echo "==> [4/5] 正在构建 Payload 目录并打包 IPA..."
 rm -rf Payload StudyOS.ipa
 mkdir -p Payload
 
-APP_BUNDLE_PATH=$(find build -name "StudyOS.app" -type d | head -n 1)
+if [ -d "build/Release-iphoneos/StudyOS.app" ]; then
+    APP_BUNDLE_PATH="build/Release-iphoneos/StudyOS.app"
+else
+    APP_BUNDLE_PATH=$(find build -name "StudyOS.app" -type d | grep -v "\.build" | head -n 1)
+fi
+
 if [ -z "$APP_BUNDLE_PATH" ] || [ ! -d "$APP_BUNDLE_PATH" ]; then
     echo "错误：未在 build 目录中找到 StudyOS.app！"
     exit 1
@@ -49,9 +54,12 @@ fi
 echo "找到构建产物 App Bundle: $APP_BUNDLE_PATH"
 cp -r "$APP_BUNDLE_PATH" Payload/
 
-# 确保复制完全解析好字面量宏的 Info.plist
+# 确保复制完全解析好平台属性与字面量宏的 Info.plist
 cp Config/Info.plist Payload/StudyOS.app/Info.plist
 plutil -lint Payload/StudyOS.app/Info.plist
+
+# 写入 iOS 标配的 PkgInfo 签名标识文件
+echo -n "APPL????" > Payload/StudyOS.app/PkgInfo
 
 # 验证并赋权可执行文件
 if [ ! -f "Payload/StudyOS.app/StudyOS" ]; then
@@ -59,6 +67,10 @@ if [ ! -f "Payload/StudyOS.app/StudyOS" ]; then
     exit 1
 fi
 chmod +x Payload/StudyOS.app/StudyOS
+
+# 打印 App Bundle 详细结构以便验证
+echo "==> Payload/StudyOS.app 文件清单："
+ls -la Payload/StudyOS.app
 
 # 压缩为标准 IPA
 zip -r -q StudyOS.ipa Payload
