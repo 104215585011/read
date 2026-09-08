@@ -17,6 +17,11 @@ fi
 echo "==> [2/5] 正在生成 StudyOS.xcodeproj 原生工程..."
 xcodegen generate
 
+# 兼容性处理：将 xcodegen 生成的高版本工程格式 (77/Xcode 16) 降级为 Xcode 15 兼容模式 (objectVersion 56)
+echo "==> 调整 Xcode 工程兼容性格式为 Xcode 15 (objectVersion = 56)..."
+sed -i '' 's/objectVersion = [0-9]*/objectVersion = 56/g' StudyOS.xcodeproj/project.pbxproj
+sed -i '' 's/compatibilityVersion = "Xcode [^"]*"/compatibilityVersion = "Xcode 14.0"/g' StudyOS.xcodeproj/project.pbxproj
+
 # 3. 编译真机 Release 版本
 echo "==> [3/5] 正在编译真机 Release 二进制目标 (iphoneos arm64)..."
 xcodebuild build \
@@ -35,9 +40,9 @@ echo "==> [4/5] 正在构建 Payload 目录并打包 IPA..."
 rm -rf Payload StudyOS.ipa
 mkdir -p Payload
 
-APP_BUNDLE_PATH=$(find build/Release-iphoneos -name "StudyOS.app" -type d | head -n 1)
+APP_BUNDLE_PATH=$(find build -name "StudyOS.app" -type d | head -n 1)
 if [ -z "$APP_BUNDLE_PATH" ] || [ ! -d "$APP_BUNDLE_PATH" ]; then
-    echo "错误：未在 build/Release-iphoneos 中找到 StudyOS.app！"
+    echo "错误：未在 build 目录中找到 StudyOS.app！"
     exit 1
 fi
 
