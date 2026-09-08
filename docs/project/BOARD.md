@@ -1,6 +1,6 @@
 # StudyOS 项目看板
 
-更新：2026-09-08T09:16:30+08:00。M0 文档阶段、M1-SETUP 原生脚手架阶段及 M2 核心阅读流/批注笔迹持久化/AI 交互联调阶段均已收口完成（DONE）；GitHub Actions CI 真实云端环境（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器 `iPad Pro 11-inch (M4)`）在最新 Commit `c429470` 上 47 项自动化测试套件 100% 全部通过（47/47 PASS，0 失败，0 告警）；M2-BE、M2-UI、M2-QA 状态全部更新为 DONE；M3 规划（本地离线模型适配、长文档分批研读与真机手写走查）置为 READY；平台为 iPad 原生。
+更新：2026-09-08T10:48:35+08:00。M0 文档阶段、M1-SETUP 原生脚手架阶段及 M2 核心阅读流/批注笔迹持久化/AI 交互联调阶段均已收口完成（DONE）；用户已正式下达推进指令开启 M3 阶段（本地离线模型适配、长文档分批研读与真机手写走查）；M3 整体状态更新为 IN_PROGRESS；主任务表激活 M3-BE（IN_PROGRESS，正式授权项目后端 Codex1 启动）、M3-UI（READY，UI 总监 Claude2 待命）与 M3-QA（READY，项目测试 Codex2 待命）；平台为 iPad 原生。
 
 | 任务 | 负责人 | 依赖 | 排他可写路径 | 验收条件 | 状态 |
 |---|---|---|---|---|---|
@@ -14,9 +14,13 @@
 | M2-BE 核心服务与 Provider 基础设施 | 项目后端 Codex1 | M1-SETUP 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`docs/backend/**`、`docs/logs/backend.md` | 本地 LLM Provider 抽象、SSE 流式客户端、五级上下文聚合、全量 CryptoKit SHA-256 哈希、不可变 AggregatedContext 强校验、握手防重入预占 | DONE |
 | M2-UI 交互流与 AI 呈现落地 | UI 总监 Claude2 / 主协调者临时迁移 | M2-BE 核心服务接口/数据模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | AI 侧栏打字机动效、流式终态互斥（failed/cancelled）、真实物理页文本提取与不可变 AggregatedContext 强透传、选区浮动菜单、设置/API Key 面板 | DONE |
 | M2-QA 自动化测试与端到端验证 | 项目测试 Codex2 | M2-BE/UI 实施交付物 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 7 大测试类 47 项自动化测试（含 8 项核心专项回归），云端 CI (macOS-14 / iPadOS 17.5) 47/47 100% 全部通过，验收报告落盘 | DONE |
-| M3 本地离线模型适配、长文档分批研读与真机手写走查 | Codex1 + Claude2 + Codex2 | M2 收口 | 模块排他目录（见 M3 规划） | R10 全文学习视图分批研读、本地离线大模型适配调度、多轮对话上下文、Apple Pencil 物理手写压感与真机走查闭环 | READY |
+| M3 本地离线模型适配、长文档分批研读与真机手写走查 | Codex1 + Claude2 + Codex2 | M2 收口 | 模块排他目录（见 M3 规划） | R10 全文学习视图分批研读、本地离线大模型适配调度、多轮对话上下文、Apple Pencil 物理手写压感与真机走查闭环 | IN_PROGRESS |
+| M3-BE 离线 Provider 与分批抽取引擎 | 项目后端 Codex1 | M2 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`Package.swift`、`docs/backend/**`、`docs/logs/backend.md` | 长文档异步分批抽取引擎（落实 R10 P0 后端支撑）、端侧离线 LLM Provider 抽象协议与调度器、R11 AI Notes 数据模型与持久化服务 | IN_PROGRESS |
+| M3-UI 全屏全文学习视图与离线设置界面 | UI 总监 Claude2 | M3-BE 接口草案与模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | R10 全屏全文学习视图、概念/考点脑图结构卡片、AI 助学笔记卡片沉淀、Provider 切换与离线设置界面 | READY |
+| M3-QA 离线套件与分批抽取验证 | 项目测试 Codex2 | M3-BE / M3-UI 交付物 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 长文档分批抽取测试、离线 Provider Mock 套件、AI Notes 持久化回归用例、iPad 真机手写走查用例准备 | READY |
 
 每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M0、M1-SETUP、M2 已全量收口闭环（DONE）。
+
 
 
 ## M0 收口记录
@@ -260,3 +264,23 @@ PM Claude1 正式将 **M2-BE、M2-UI、M2-QA 及 M2 整体状态更新为 DONE**
 - **Claude1（项目经理）**：
   - 排他可写目录：`docs/project/**`、`docs/logs/pm.md`、`docs/handoffs/`；
   - 核心职责：M3 看板维护、需求追踪、真机验证协调与阶段把控。
+
+## M3 启动与任务授权记录
+
+2026-09-08T10:48:35+08:00：收到用户正式推进指令，M3 阶段（本地离线模型适配、长文档分批研读与真机手写走查）正式启动。PM Claude1 完成 M3 子任务拆解、排他目录授权与协作编排，产出启动与任务授权交接文档 `docs/handoffs/M3-KICKOFF-pm-001.md`。
+
+### 1. 子任务拆解与排他边界授权
+
+| 子任务编号 | 责任人 | 状态 | 排他可写目录 | 核心工作内容与交付边界 |
+|---|---|---|---|---|
+| **M3-BE** | 项目后端 Codex1 | **IN_PROGRESS** | `StudyOS/Core/`<br>`StudyOS/Services/`<br>`StudyOS/Models/`<br>`StudyOS/Storage/`<br>`StudyOS/Contracts/`<br>`Package.swift`<br>`docs/backend/**`<br>`docs/logs/backend.md` | **长文档分批抽取引擎、端侧离线 Provider 协议与 AI Notes 存储服务**：<br>1. **长文档异步分批抽取引擎**（落实 R10 P0 后端支撑）：针对长篇大文件设计并发安全、分批分块提取与增量大纲聚合机制，提供进度反馈与取消支持，杜绝 Token 溢出与假全文；<br>2. **端侧离线 LLM Provider 抽象协议与统一调度器**：扩展 `LLMProviderProtocol` 抽象端侧离线模型适配器接口，支持本地推理/端侧模型调度与云端 Provider 动态无缝切换及弱网/离线降级策略；<br>3. **R11 AI Notes 数据模型与持久化服务**：定义可编辑卡片笔记模型（`AINoteCard`），绑定原文引用来源（文档、页码、锚点矩形、时间戳）与关联手写批注快照，提供本地 SQLite/JSON 隔离持久化引擎与两路级联管理；<br>4. **单一工程配置维护**：按需引入本地推理或依赖库配置。 |
+| **M3-UI** | UI 总监 Claude2 | **READY** | `StudyOS/UI/`<br>`StudyOS/Views/`<br>`StudyOS/Adapters/`<br>`StudyOS/ViewModels/`<br>`docs/ui/**`<br>`docs/logs/ui.md` | **全屏全文学习视图、概念卡片沉淀与离线设置界面**：<br>1. **R10 全屏全文学习视图**：独立全屏/分栏学习界面（`FullDocumentStudyView` 落地），支持结构、概念、重点、难点及知识关系树状/脑图卡片呈现与原文双向跳转；<br>2. **AI 助学笔记卡片沉淀**：卡片式笔记流呈现、就地富文本编辑、关联手写墨水与原书引用高亮回溯；<br>3. **Provider 切换与离线模型设置面板**：提供端侧离线模型 vs 云端 Provider 切换、模型下载/加载状态提示与离线运行参数配置界面。 |
+| **M3-QA** | 项目测试 Codex2 | **READY** | `docs/qa/**`<br>`StudyOSTests/`<br>`StudyOSUITests/`<br>`docs/logs/qa.md` | **离线测试套件、分批抽取验证与真机走查准备**：<br>1. **长文档分批抽取引擎专项测试**：大文件超大页码分批并发提取、边界中断与取消测试、大纲聚合完整性断言；<br>2. **端侧离线 Provider Mock 套件**：端侧模型离线模拟器、无网/弱网降级断言、Provider 动态切换并发一致性验证；<br>3. **AI Notes 持久化回归用例**：笔记卡片增删改查、引用锚点有效性校验、两路删除解绑/级联清除回归；<br>4. **iPad 真机手写走查用例编排**：设计物理 Apple Pencil 压感、笔锋倾斜角、书写低延迟与手掌防误触（Palm Rejection）走查用例与证据归档模板。 |
+
+### 2. 执行协作时序与依赖推进
+1. **第一波次（当前进行中）**：
+   - **Codex1 独占推进 M3-BE**：完成长文档分批抽取引擎、端侧离线 Provider 抽象协议与调度器、R11 AI Notes 数据模型与持久化服务，产出后端交接文档 `docs/handoffs/M3-BE-backend-001.md`；
+2. **第二波次（待 M3-BE 交付后激活）**：
+   - **Claude2 接棒推进 M3-UI**：对接后端接口与模型，落地全屏全文学习视图、概念/考点结构卡片、AI Notes 笔记流与离线设置界面，产出 UI 交接文档；
+3. **第三波次（实施完成后闭环）**：
+   - **Codex2 推进 M3-QA**：接入长文档抽取测试、离线 Provider Mock 套件、AI Notes 回归用例与真机手写走查，触发 GitHub Actions CI 云端流水线绿灯并出具验证报告。

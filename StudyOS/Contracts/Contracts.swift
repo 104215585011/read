@@ -11,6 +11,10 @@ import Foundation
 //    - NoteServiceProtocol: 笔记管理与归属维护协议
 //    - LLMProviderProtocol: 本地大模型流式 Provider 抽象协议 (SSE / Chunk / 结构化错误)
 //    - AIServiceProtocol: AI 助学核心服务协议 (流式生成 / 终态互斥 / 来源校验)
+//    - BatchExtractionProtocol: 长文档异步分批抽取协议 (R10 P0 后端支撑 / 流式进度 / 取消响应)
+//    - FullDocumentStudyProtocol: 全文学习研读协议 (R10 全文学习视图 / 概念网络 / 难点解析)
+//    - LocalLLMProviderProtocol: 端侧/本地离线模型 Provider 抽象协议 (端侧模型状态机 / 离线加载)
+//    - AINoteServiceProtocol: R11 AI Notes 助学笔记沉淀与两路删除联动服务协议
 //
 // 2. 领域记录与结构 (Domain Records & Structs):
 //    - Document: 文档元数据与状态
@@ -22,6 +26,9 @@ import Foundation
 //    - Annotation: 页面批注 (highlight/underline/text)
 //    - ReadingPosition: 阅读物理进度与缩放提示
 //    - Note: 笔记记录 (可编辑文本、图片、AI来源、解绑标记)
+//    - AINoteCard: R11 AI Notes 卡片模型 (标题、正文、来源快照、两路删除策略)
+//    - FullDocumentAnalysis: R10 全文研读报告 (概念网络、前后依赖、难点解析、小节指引)
+//    - ConceptNode / KnowledgeRelation / DifficultyPoint / KeySectionGuide
 //    - Evidence: AI 证据条目与提取来源
 //    - ContextManifest: 外发清单与确认绑定 (OutboundItem, InclusionStatus)
 //
@@ -36,3 +43,5 @@ import Foundation
 //    - NotePolicy: 删除时两路笔记处理策略 (keep / delete)
 //    - DeleteImpact: 删除影响预览清单 (UIREV-06)
 //    - DeleteResult: 删除终态结果 (completed / cleanupPending)
+//    - BatchExtractionConfig / BatchExtractionProgress / BatchExtractionResult
+//    - LocalModelConfig / LocalModelInferenceStatus / ModelState

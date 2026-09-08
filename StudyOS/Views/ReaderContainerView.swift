@@ -63,9 +63,13 @@ public struct ReaderContainerView: View {
             )) {
                 AISidebarView(viewModel: viewModel)
             }
-            // 全文学习视图模态
+            // 全文学习视图模态 (R10)
             .sheet(isPresented: $viewModel.isFullStudyViewOpen) {
                 FullDocumentStudyView(viewModel: viewModel)
+            }
+            // AI 笔记沉淀流模态 (R11)
+            .sheet(isPresented: $viewModel.isAINotesOpen) {
+                AINotesView(viewModel: viewModel)
             }
             // 轻量 Toast 提示
             .overlay(
@@ -121,23 +125,60 @@ public struct ReaderContainerView: View {
             .pickerStyle(.segmented)
             .frame(width: 190)
             
-            // 全文学习视图
+            // 全文研读视图 (R10)
             Button {
                 viewModel.isFullStudyViewOpen = true
             } label: {
-                Image(systemName: "doc.text.magnifyingglass")
-                    .font(.body)
-                    .foregroundColor(StudyTheme.Colors.secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                    Text("全文研读")
+                }
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(StudyTheme.Colors.secondary.opacity(0.12))
+                .foregroundColor(StudyTheme.Colors.secondary)
+                .cornerRadius(StudyTheme.Radius.pill)
             }
             .buttonStyle(.plain)
             
-            // ✨ AI 助学触发按钮 (带有活动高亮指示)
+            // AI 笔记抽屉 (R11)
+            Button {
+                viewModel.isAINotesOpen = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "note.text")
+                    Text("AI 笔记")
+                    if !viewModel.aiNotes.isEmpty {
+                        Text("\(viewModel.aiNotes.count)")
+                            .font(.caption2)
+                            .padding(.horizontal, 4)
+                            .background(StudyTheme.Colors.accent)
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
+                    }
+                }
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(StudyTheme.Colors.accent.opacity(0.12))
+                .foregroundColor(StudyTheme.Colors.accent)
+                .cornerRadius(StudyTheme.Radius.pill)
+            }
+            .buttonStyle(.plain)
+            
+            // ✨ AI 助学触发按钮 (带有离线模型指示与活动高亮指示)
             Button {
                 withAnimation(StudyTheme.Motion.splitSpring) {
                     viewModel.isAISidebarOpen.toggle()
                 }
             } label: {
                 HStack(spacing: 4) {
+                    if let status = viewModel.localModelStatus, status.isReady {
+                        Circle()
+                            .fill(StudyTheme.Colors.success)
+                            .frame(width: 6, height: 6)
+                    }
                     Image(systemName: "sparkles")
                     Text("AI 助学")
                         .fontWeight(.semibold)

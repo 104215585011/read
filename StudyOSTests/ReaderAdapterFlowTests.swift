@@ -23,6 +23,22 @@ final class MockCoreServiceForAdapter: CoreServiceProtocol, @unchecked Sendable 
         fatalError("AIService not accessed in ReaderAdapter unit tests")
     }
 
+    var batchExtractionEngine: BatchExtractionProtocol {
+        fatalError("BatchExtractionEngine not accessed in ReaderAdapter unit tests")
+    }
+
+    var aiNoteService: AINoteServiceProtocol {
+        fatalError("AINoteService not accessed in ReaderAdapter unit tests")
+    }
+
+    var localLLMProvider: LocalLLMProviderProtocol? {
+        nil
+    }
+
+    var fullDocumentStudyService: FullDocumentStudyProtocol {
+        fatalError("FullDocumentStudyService not accessed in ReaderAdapter unit tests")
+    }
+
     func resolveSource(_ anchor: SourceAnchor) async -> SourceResolution {
         if let handler = resolveSourceHandler {
             return await handler(anchor)

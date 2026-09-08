@@ -71,6 +71,16 @@ public final class ReaderViewModel: ObservableObject {
     @Published public var currentErrorMessage: String?
     @Published public var activeManifest: ContextManifest?
     
+    // MARK: - M3-UI 全文学习、分批抽取、AI Notes 与端侧离线模型
+    @Published public var fullDocumentAnalysis: FullDocumentAnalysis?
+    @Published public var isAnalyzingFullDocument: Bool = false
+    @Published public var batchExtractionProgress: BatchExtractionProgress?
+    @Published public var isExtractingBatch: Bool = false
+    
+    @Published public var aiNotes: [AINoteCard] = []
+    @Published public var isAINotesOpen: Bool = false
+    @Published public var localModelStatus: LocalModelInferenceStatus?
+    
     // 当前在途请求追踪标识 (用于与后端 AIServiceActor cancel 交互)
     private var activeRequestID: String?
     private var activeAttemptID: String?
@@ -137,6 +147,9 @@ public final class ReaderViewModel: ObservableObject {
         } catch {
             displayToast("加载阅读快照失败: \(error.localizedDescription)")
         }
+        
+        await loadAINotes()
+        await checkLocalLLMStatus()
     }
     
     // MARK: - 来源跳转
@@ -342,7 +355,7 @@ public final class ReaderViewModel: ObservableObject {
                             id: aiMsgID,
                             isUser: false,
                             text: accumulatedText,
-                            sources: selectedAnchor != nil ? [selectedAnchor!] : [],
+                            sources: selectedAnchor.map { [$0] } ?? [],
                             timestamp: Date(),
                             isPartial: true
                         )
@@ -644,6 +657,229 @@ public final class ReaderViewModel: ObservableObject {
         }
     }
     
+    // MARK: - M3-UI: 全文学习研读与分批抽取引擎联动 (R10 P0)
+    public func loadOrGenerateFullDocumentStudy(forceRegenerate: Bool = false) async {
+        if !forceRegenerate {
+            if let cached = await coreService.fullDocumentStudyService.getCachedAnalysis(documentID: document.id) {
+                self.fullDocumentAnalysis = cached
+                return
+            }
+        }
+        
+        isAnalyzingFullDocument = true
+        isExtractingBatch = true
+        batchExtractionProgress = BatchExtractionProgress(
+            processedPages: 0,
+            totalPages: max(1, document.pageCount),
+            currentBatchIndex: 0,
+            totalBatches: max(1, (document.pageCount + 9) / 10),
+            percentage: 0.0,
+            isCompleted: false
+        )
+        
+        // 1. 尝试触发长文档异步分批抽取引擎以获取精确进度与文本结构
+        let fileURL: URL
+        let path = document.localFileRef
+        if let parsedURL = URL(string: path), parsedURL.scheme != nil {
+            fileURL = parsedURL
+        } else {
+            fileURL = URL(fileURLWithPath: path)
+        }
+        
+        let batchConfig = BatchExtractionConfig(
+            batchSize: 10,
+            maxConcurrentBatches: 2,
+            timeoutPerBatch: 30.0,
+            extractImages: false,
+            startPageIndex0: 0,
+            endPageIndex0: max(0, document.pageCount - 1)
+        )
+        
+        do {
+            _ = try await coreService.batchExtractionEngine.extractDocument(
+                documentID: document.id,
+                fileURL: fileURL,
+                config: batchConfig
+            ) { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    self?.batchExtractionProgress = progress
+                }
+            }
+            self.isExtractingBatch = false
+            
+            // 2. 触发全文学习分析服务生成核心概念网络、考点与知识拓扑
+            let analysis = try await coreService.fullDocumentStudyService.generateFullDocumentStudy(
+                documentID: document.id,
+                options: nil
+            )
+            self.fullDocumentAnalysis = analysis
+            self.isAnalyzingFullDocument = false
+            displayToast("全文学习研读分析已完成")
+        } catch is CancellationError {
+            self.isExtractingBatch = false
+            self.isAnalyzingFullDocument = false
+            displayToast("全文研读抽取已取消")
+        } catch {
+            self.isExtractingBatch = false
+            self.isAnalyzingFullDocument = false
+            let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            displayToast("全文研读失败: \(msg)")
+        }
+    }
+    
+    public func cancelFullDocumentStudy() async {
+        _ = await coreService.batchExtractionEngine.cancelExtraction(documentID: document.id)
+        _ = await coreService.fullDocumentStudyService.cancelAnalysis(documentID: document.id)
+        self.isExtractingBatch = false
+        self.isAnalyzingFullDocument = false
+        displayToast("已取消全文研读任务")
+    }
+    
+    // MARK: - M3-UI: AI Notes 卡片沉淀与管理 (R11 P1)
+    public func loadAINotes() async {
+        do {
+            let list = try await coreService.aiNoteService.listAINotes(documentID: document.id)
+            self.aiNotes = list
+        } catch {
+            // 静默处理加载失败
+        }
+    }
+    
+    public func saveAINoteFromAIResult(
+        title: String? = nil,
+        markdownContent: String,
+        anchors: [SourceAnchor] = [],
+        tags: [String] = []
+    ) async {
+        let noteTitle: String
+        if let t = title, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            noteTitle = t
+        } else {
+            let firstLine = markdownContent.components(separatedBy: "\n").first ?? ""
+            let cleaned = firstLine.trimmingCharacters(in: CharacterSet(charactersIn: "# ")).trimmingCharacters(in: .whitespacesAndNewlines)
+            noteTitle = cleaned.isEmpty ? "AI 研读笔记 - \(document.title)" : String(cleaned.prefix(25))
+        }
+        
+        let validAnchors: [SourceAnchor]
+        if !anchors.isEmpty {
+            validAnchors = anchors
+        } else {
+            validAnchors = [
+                SourceAnchor(
+                    documentID: document.id,
+                    documentRevision: document.revision,
+                    pageIndex0: adapter.currentPageIndex0,
+                    precision: .page
+                )
+            ]
+        }
+        
+        let snapshot = AINoteSourceSnapshot(
+            documentID: document.id,
+            documentRevision: document.revision,
+            sourceAnchors: validAnchors,
+            originKind: .document,
+            aiOrigin: AIOrigin(
+                requestID: activeRequestID ?? UUID().uuidString,
+                promptDigest: "digest_\(Date().timeIntervalSince1970)",
+                modelProfile: "studyos-ai"
+            )
+        )
+        
+        let card = AINoteCard(
+            title: noteTitle,
+            markdownContent: markdownContent,
+            sourceSnapshot: snapshot,
+            inclusionPolicy: .independent,
+            tags: tags
+        )
+        
+        do {
+            let created = try await coreService.aiNoteService.createAINote(card: card)
+            self.aiNotes.insert(created, at: 0)
+            displayToast("已成功沉淀为 AI 笔记")
+        } catch {
+            let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            displayToast("保存 AI 笔记失败: \(msg)")
+        }
+    }
+    
+    public func saveAINoteFromMessage(_ message: AIMessageItem) async {
+        guard !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        await saveAINoteFromAIResult(
+            title: "问答笔记: \(String(message.text.prefix(16)))",
+            markdownContent: message.text,
+            anchors: message.sources,
+            tags: ["问答沉淀", "AI助学"]
+        )
+    }
+    
+    public func saveAINoteFromFullStudy(_ analysis: FullDocumentAnalysis) async {
+        var markdown = "# 全文研读报告: \(analysis.title)\n\n"
+        markdown += "\(analysis.overview)\n\n"
+        if !analysis.concepts.isEmpty {
+            markdown += "## 核心概念\n"
+            for c in analysis.concepts {
+                markdown += "- **\(c.name)**: \(c.summary)\n"
+            }
+            markdown += "\n"
+        }
+        if !analysis.difficultyPoints.isEmpty {
+            markdown += "## 重点难点\n"
+            for d in analysis.difficultyPoints {
+                markdown += "- **\(d.title)**: \(d.description)\n  *攻关策略*: \(d.suggestedStrategy)\n"
+            }
+        }
+        
+        var allAnchors: [SourceAnchor] = []
+        for c in analysis.concepts { allAnchors.append(contentsOf: c.sourceAnchors) }
+        for d in analysis.difficultyPoints { allAnchors.append(contentsOf: d.sourceAnchors) }
+        
+        await saveAINoteFromAIResult(
+            title: "全文研读: \(analysis.title)",
+            markdownContent: markdown,
+            anchors: allAnchors,
+            tags: ["全文导读", "知识拓扑"]
+        )
+    }
+    
+    public func deleteAINote(id: String) async {
+        do {
+            _ = try await coreService.aiNoteService.deleteAINote(id: id)
+            self.aiNotes.removeAll { $0.id == id }
+            displayToast("已删除 AI 笔记")
+        } catch {
+            displayToast("删除失败: \(error.localizedDescription)")
+        }
+    }
+    
+    // MARK: - M3-UI: 端侧离线模型状态与控制 (R14)
+    public func checkLocalLLMStatus() async {
+        guard let localProvider = coreService.localLLMProvider else {
+            self.localModelStatus = nil
+            return
+        }
+        self.localModelStatus = await localProvider.inferenceStatus
+    }
+    
+    public func loadLocalModel() async {
+        guard let localProvider = coreService.localLLMProvider else { return }
+        do {
+            try await localProvider.loadModel()
+            self.localModelStatus = await localProvider.inferenceStatus
+            displayToast("端侧离线模型就绪")
+        } catch {
+            displayToast("离线模型加载失败: \(error.localizedDescription)")
+        }
+    }
+    
+    public func unloadLocalModel() async {
+        guard let localProvider = coreService.localLLMProvider else { return }
+        await localProvider.unloadModel()
+        self.localModelStatus = await localProvider.inferenceStatus
+        displayToast("端侧模型已释放")
+    }
+
     public func displayToast(_ message: String) {
         self.toastMessage = message
         self.showToast = true

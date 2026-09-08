@@ -134,3 +134,27 @@
 3. 明确客观边界：确认 U (单元) 与 S (模拟器自动化) 层级 100% PASS；Apple Pencil 物理手写压感/低延迟及真实生产外部网络联调仍待后续 D (真实真机) 阶段走查；
 4. 交付文件：docs/qa/M2-VERIFICATION-REPORT.md、docs/handoffs/M2-QA-CLOSE-qa-001.md。向主协调者汇报。释放本轮 QA 文档排他写入权限。
 
+## 2026-09-08T10:56:30+08:00 READ_ACK / ACCEPTED / START · M3-QA
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收 Codex1 (后端) 交付的 M3-BE 核心契约与服务（包含 BatchExtractionProtocol、FullDocumentStudyProtocol、LocalLLMProviderProtocol、AINoteProtocol 及 DocumentBatchExtractionEngine、LocalMockLLMProvider、AINoteService、FullDocumentStudyService，以及 CoreServiceProtocol 扩充属性）。
+已读 AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、docs/project/UI-V03-HANDOFF.md、docs/qa/M0-UI-RECHECK-002.md、docs/backend/CONTRACT-v0.1-draft.md (0.1-draft / M0-BE-REV2) 以及最新的交接文件 docs/handoffs/M3-BE-backend-001.md、docs/handoffs/M3-KICKOFF-pm-001.md。
+本轮任务：
+1. 维护已有测试桩兼容性：在 StudyOSTests/ReaderAdapterFlowTests.swift 的 MockCoreServiceForAdapter 中补全 CoreServiceProtocol 新增的 4 个属性（batchExtractionEngine, aiNoteService, localLLMProvider, fullDocumentStudyService）；
+2. 编写 M3 核心测试套件 StudyOSTests/M3BackendTests.swift：
+   - BatchExtractionTests：并发分批拆分逻辑（按 batchSize 切片、页码覆盖无遗漏）、Task.cancel 取消支持与状态流转、进度回调递增通知；
+   - LocalLLMProviderTests：离线端侧模型状态机（unloaded -> loading -> ready -> error）、端侧离线模拟流式吐字（LLMChunk 流式消费与 stop 终态）；
+   - AINoteServiceTests：AI Notes 卡片保存、更新与查询（保留来源锚点 quote / pageIndex0 / rect）、两路删除策略联动（keep 时解绑 documentID/chapterID 置空且锚点标记 documentDeleted，delete 时级联清除）；
+   - FullDocumentStudyTests：全文学习分析报告生成、缓存与读取；
+3. 严格保障纯原生实现、Strict Concurrency 安全、零阻塞无死锁；
+4. 交付交接文档 docs/handoffs/M3-QA-qa-001.md 并更新本日志；
+严格遵守排他写入规则：仅修改 StudyOSTests/**、docs/qa/**、docs/logs/qa.md 与 docs/handoffs/M3-QA-*.md，严禁修改业务源码或工程配置。
+
+## 2026-09-08T11:01:00+08:00 HANDOFF / END · M3-QA
+完成 M3 自动化测试套件编写与 Mock 兼容性维护：
+1. 维护已有测试桩兼容性：在 StudyOSTests/ReaderAdapterFlowTests.swift 的 MockCoreServiceForAdapter 中补齐 CoreServiceProtocol 扩充的 4 项属性（batchExtractionEngine、aiNoteService、localLLMProvider、fullDocumentStudyService），非测试直接访问项置为 fatalError/nil，彻底解决编译阻断；
+2. 在专有测试目录 StudyOSTests/M3BackendTests.swift 交付 4 大核心领域测试类（共 27 项细分测试用例）：
+   - BatchExtractionTests：并发分批拆分切片（batchSize: 10 对 25 页拆分为 3 批，页码 0..24 顺序无遗漏无重复）、自定义区间与批次大小切片、基于线程安全 ProgressCollector 验证进度事件单调递增（processedPages、percentage、isCompleted）、Task.cancel() 协作式中断响应与 BatchExtractionError.cancelled 状态流转、cancelExtraction(documentID:) 引擎主动取消、页码越界防御（pageOutOfBounds）及 isExtracting 状态查询；
+   - LocalLLMProviderTests：LocalModelConfig 配置默认值与自定义参数、离线端侧模型生命周期状态机（unloaded -> loading -> ready，内存使用与已加载模型 ID 联动）、ModelState 枚举与错误状态表示、端侧离线流式吐字消费与 stop 终态（全文概括回答模版、难点考点模版）、unloaded 状态下流式推理自动唤醒拉起、流式消费提前中断优雅取消；
+   - AINoteServiceTests：AI Notes 卡片保存、更新与查询，精确校验来源锚点保真度（quote、pageIndex0、paragraphID、rects、precision）；基于 expectedRevision 的乐观锁版本递增与 conflict 冲突防御；按文档 ID 过滤与全局列表查询；单条卡片删除；两路删除联动策略 .keep 验证（卡片独立保留、documentID 解绑置空、锚点标记 documentDeleted，全局可见而文档过滤隔离）；两路删除联动策略 .delete 验证（关联卡片级联清除）；卡片与通用 Note 双向无损互转（toNote / fromNote）；
+   - FullDocumentStudyTests：全文研读分析报告生成（概念节点网络 concepts、知识拓扑关系 relations、考点解析 difficultyPoints、关键小节指引 keySections 及 readingEstimate 耗时估算）；本地缓存命中与快速复用；自定义研读报告手动保存更新；不存在文档 notFound 防御；跨服务实例冷启动沙盒持久化数据恢复；
+3. 严格遵循纯原生与 Strict Concurrency 并发安全：使用 NSLock 保护的 @unchecked Sendable 进度收集器，测试类继承 XCTestCase 无全局 @MainActor 隔离冲突，全生命周期无阻塞与死锁；
+4. 交付交接文档 docs/handoffs/M3-QA-qa-001.md。因 Windows 开发宿主无 Xcode/Swift 工具链，客观严谨标定为 NOT_RUN，绝不虚报 PASS。已向主协调者汇报。释放本轮 QA 专有写入权限。

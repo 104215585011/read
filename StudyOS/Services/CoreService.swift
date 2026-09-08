@@ -6,17 +6,33 @@ public final class CoreService: CoreServiceProtocol, Sendable {
     public let readerCoreService: ReaderCoreServiceProtocol
     public let noteService: NoteServiceProtocol
     public let aiService: AIServiceProtocol
+    public let batchExtractionEngine: BatchExtractionProtocol
+    public let aiNoteService: AINoteServiceProtocol
+    public let localLLMProvider: LocalLLMProviderProtocol?
+    public let fullDocumentStudyService: FullDocumentStudyProtocol
 
     public init(
         documentService: DocumentServiceProtocol,
         readerCoreService: ReaderCoreServiceProtocol,
         noteService: NoteServiceProtocol,
-        aiService: AIServiceProtocol
+        aiService: AIServiceProtocol,
+        batchExtractionEngine: BatchExtractionProtocol = DocumentBatchExtractionEngine(),
+        aiNoteService: AINoteServiceProtocol = AINoteService(),
+        localLLMProvider: LocalLLMProviderProtocol? = nil,
+        fullDocumentStudyService: FullDocumentStudyProtocol? = nil
     ) {
         self.documentService = documentService
         self.readerCoreService = readerCoreService
         self.noteService = noteService
         self.aiService = aiService
+        self.batchExtractionEngine = batchExtractionEngine
+        self.aiNoteService = aiNoteService
+        self.localLLMProvider = localLLMProvider
+        self.fullDocumentStudyService = fullDocumentStudyService ?? FullDocumentStudyService(
+            sandbox: .shared,
+            provider: localLLMProvider ?? LocalMockLLMProvider(),
+            metadataEngine: MetadataStorageEngine(sandbox: .shared)
+        )
     }
 
     /// 快捷单例构造（集成默认沙盒与 Actor 引擎）
@@ -25,23 +41,34 @@ public final class CoreService: CoreServiceProtocol, Sendable {
             profileID: "openai-default",
             baseURL: URL(string: "https://api.openai.com/v1")!,
             apiKey: ""
-        )
+        ),
+        localProvider: LocalLLMProviderProtocol? = LocalMockLLMProvider()
     ) -> CoreService {
         let sandbox = LocalSandboxManager.shared
         let metadataEngine = MetadataStorageEngine(sandbox: sandbox)
         let pageKeyIndexManager = PageKeyIndexManager()
         let inkEngine = InkStorageEngine(sandbox: sandbox, indexManager: pageKeyIndexManager)
-
-        let docService = DocumentService(metadataEngine: metadataEngine, inkEngine: inkEngine, sandbox: sandbox)
+        let aiNoteSvc = AINoteService(sandbox: sandbox)
+        let docService = DocumentService(metadataEngine: metadataEngine, inkEngine: inkEngine, sandbox: sandbox, aiNoteService: aiNoteSvc)
         let readerService = ReaderCoreService(metadataEngine: metadataEngine, inkEngine: inkEngine)
         let noteSvc = NoteService(metadataEngine: metadataEngine)
         let aiSvc = AIService(provider: provider, metadataEngine: metadataEngine)
+        let extractionEngine = DocumentBatchExtractionEngine()
+        let fullStudySvc = FullDocumentStudyService(
+            sandbox: sandbox,
+            provider: localProvider ?? provider,
+            metadataEngine: metadataEngine
+        )
 
         return CoreService(
             documentService: docService,
             readerCoreService: readerService,
             noteService: noteSvc,
-            aiService: aiSvc
+            aiService: aiSvc,
+            batchExtractionEngine: extractionEngine,
+            aiNoteService: aiNoteSvc,
+            localLLMProvider: localProvider,
+            fullDocumentStudyService: fullStudySvc
         )
     }
 

@@ -51,39 +51,99 @@ public struct AISidebarView: View {
     
     // MARK: - 范围选择器与诊断头
     private var scopeHeader: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("AI 助学范围")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                
-                HStack(spacing: 6) {
-                    Image(systemName: scopeIconName)
-                        .foregroundColor(StudyTheme.Colors.primary)
-                    Text(scopeDescription)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+        VStack(spacing: StudyTheme.Spacing.xs) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AI 助学范围")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: scopeIconName)
+                            .foregroundColor(StudyTheme.Colors.primary)
+                        Text(scopeDescription)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
                 }
+                
+                Spacer()
+                
+                // 全文研读快捷入口
+                Button {
+                    viewModel.isFullStudyViewOpen = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chart.bar.doc.horizontal")
+                        Text("全文研读")
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(StudyTheme.Colors.secondary.opacity(0.12))
+                    .foregroundColor(StudyTheme.Colors.secondary)
+                    .cornerRadius(StudyTheme.Radius.sm)
+                }
+                .buttonStyle(.plain)
+                
+                // AI 笔记抽屉入口
+                Button {
+                    viewModel.isAINotesOpen = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "note.text")
+                        Text("AI 笔记")
+                        if !viewModel.aiNotes.isEmpty {
+                            Text("\(viewModel.aiNotes.count)")
+                                .font(.caption2)
+                                .padding(.horizontal, 4)
+                                .background(StudyTheme.Colors.accent)
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(StudyTheme.Colors.accent.opacity(0.12))
+                    .foregroundColor(StudyTheme.Colors.accent)
+                    .cornerRadius(StudyTheme.Radius.sm)
+                }
+                .buttonStyle(.plain)
             }
             
-            Spacer()
-            
-            // 全文学习视图快捷入口
-            Button {
-                viewModel.isFullStudyViewOpen = true
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chart.bar.doc.horizontal")
-                    Text("全文视图")
+            // 端侧离线模型状态指示条 (R14)
+            if let status = viewModel.localModelStatus {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(status.isReady ? StudyTheme.Colors.success : Color.orange)
+                        .frame(width: 6, height: 6)
+                    
+                    Text(status.isReady ? "端侧离线模型就绪 (\(status.loadedModelID ?? "local"))" : "端侧离线状态: \(status.state.rawValue)")
+                        .font(.caption2)
+                        .foregroundColor(status.isReady ? StudyTheme.Colors.success : .secondary)
+                    
+                    Spacer()
+                    
+                    if status.isReady {
+                        Button("释放内存") {
+                            Task { await viewModel.unloadLocalModel() }
+                        }
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    } else {
+                        Button("加载端侧模型") {
+                            Task { await viewModel.loadLocalModel() }
+                        }
+                        .font(.caption2)
+                        .foregroundColor(StudyTheme.Colors.primary)
+                    }
                 }
-                .font(.caption)
                 .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(StudyTheme.Colors.secondary.opacity(0.12))
-                .foregroundColor(StudyTheme.Colors.secondary)
+                .padding(.vertical, 3)
+                .background(Color(red: 0.96, green: 0.96, blue: 0.97))
                 .cornerRadius(StudyTheme.Radius.sm)
             }
-            .buttonStyle(.plain)
         }
         .padding(StudyTheme.Spacing.md)
         .background(Color.systemBackground)
@@ -142,10 +202,35 @@ public struct AISidebarView: View {
                         icon: "sparkles",
                         color: StudyTheme.Colors.primary
                     ) {
-                        Text(dynamicContent)
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                            .lineSpacing(4)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(dynamicContent)
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                                .lineSpacing(4)
+                            
+                            Button {
+                                Task {
+                                    await viewModel.saveAINoteFromAIResult(
+                                        title: "导学精读 - \(viewModel.document.title)",
+                                        markdownContent: dynamicContent,
+                                        tags: ["六段导学", "实时精读"]
+                                    )
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "square.and.arrow.down")
+                                    Text("存为 AI 笔记")
+                                }
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(StudyTheme.Colors.primary.opacity(0.12))
+                                .foregroundColor(StudyTheme.Colors.primary)
+                                .cornerRadius(StudyTheme.Radius.pill)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
                 
@@ -420,13 +505,36 @@ public struct AISidebarView: View {
                 if !msg.isUser { Spacer() }
             }
             
-            // AI 回答下的引用来源胶囊
-            if !msg.isUser && !msg.sources.isEmpty {
+            // AI 回答下的引用来源胶囊与一键存为 AI 笔记 (R11)
+            if !msg.isUser && !msg.isPartial {
                 HStack(spacing: 6) {
-                    ForEach(msg.sources.indices, id: \.self) { idx in
-                        let anchor = msg.sources[idx]
-                        citationButton(anchor)
+                    if !msg.sources.isEmpty {
+                        ForEach(msg.sources.indices, id: \.self) { idx in
+                            let anchor = msg.sources[idx]
+                            citationButton(anchor)
+                        }
                     }
+                    
+                    Spacer()
+                    
+                    Button {
+                        Task {
+                            await viewModel.saveAINoteFromMessage(msg)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "square.and.arrow.down")
+                            Text("存为 AI 笔记")
+                        }
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(StudyTheme.Colors.accent.opacity(0.12))
+                        .foregroundColor(StudyTheme.Colors.accent)
+                        .cornerRadius(StudyTheme.Radius.pill)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

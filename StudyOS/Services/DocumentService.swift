@@ -5,16 +5,19 @@ public actor DocumentService: DocumentServiceProtocol {
     private let metadataEngine: MetadataStorageEngine
     private let inkEngine: InkStorageEngine
     private let sandbox: LocalSandboxManager
+    private let aiNoteService: AINoteServiceProtocol?
     private let fileManager = FileManager.default
 
     public init(
         metadataEngine: MetadataStorageEngine,
         inkEngine: InkStorageEngine,
-        sandbox: LocalSandboxManager = .shared
+        sandbox: LocalSandboxManager = .shared,
+        aiNoteService: AINoteServiceProtocol? = nil
     ) {
         self.metadataEngine = metadataEngine
         self.inkEngine = inkEngine
         self.sandbox = sandbox
+        self.aiNoteService = aiNoteService
     }
 
     /// 导入本地或拾取的 PDF 文件
@@ -101,6 +104,9 @@ public actor DocumentService: DocumentServiceProtocol {
             notePolicy: notePolicy,
             confirmedImpactID: confirmedImpactID
         )
+
+        // 1.1 同步处理 AI Note 卡片两路删除策略
+        _ = try? await aiNoteService?.handleDocumentDeletion(documentID: documentID, policy: notePolicy)
 
         // 2. 清理墨水物理文件与索引
         await inkEngine.removeInks(documentID: documentID, documentRevision: expectedRevision)
