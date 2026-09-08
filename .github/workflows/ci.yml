@@ -38,7 +38,7 @@ jobs:
       - name: 上传 StudyOS.ipa 安装包 (供 iPad 侧载实测)
         uses: actions/upload-artifact@v4
         with:
-          name: StudyOS-iPad-Release-IPA
+          name: StudyOS-iPad-Release-IPA-${{ github.sha }}
           path: StudyOS.ipa
           retention-days: 14
 
