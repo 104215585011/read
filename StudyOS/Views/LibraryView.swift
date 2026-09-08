@@ -59,6 +59,8 @@ public struct LibraryView: View {
                 }
             }
             .task {
+                // 冷启动播种学术样例文档与手写批注 (M4+)
+                LocalSandboxManager.shared.seedSampleAcademicDocumentIfEmpty()
                 await viewModel.loadDocuments()
             }
             // 进入阅读器

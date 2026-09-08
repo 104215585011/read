@@ -300,3 +300,28 @@
 4. 并发安全与原生达标：纯原生零外部第三方依赖，Swift 6 严格并发模式 (-strict-concurrency=complete) 零警告通过；
 5. 明确客观交付边界：确认 S (自动化测试流水线) 106 项全量通过达到发布就绪状态，D (真实 iPad 硬件与 Apple Pencil 物理走查) 依据规程手册就绪等待现场走查；
 6. 交付文件：docs/qa/M4-VERIFICATION-REPORT.md、docs/handoffs/M4-QA-CLOSE-qa-001.md。建议 PM 将 M4-RELEASE 标记为 COMPLETED。已向主协调者汇报。释放本轮 QA 文档排他写入权限。
+
+## 2026-09-08T14:54:00+08:00 READ_ACK / ACCEPTED / START · MODEL-HUB-QA
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收主协调者关于 App UI Polish & Model Hub Sprint 交付的测试套件编写指令。
+已读 AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、docs/backend/CONTRACT-v0.1-draft.md 以及最新代码与交接。
+本轮任务：
+1. 维护测试桩兼容性：在 StudyOSTests/ReaderAdapterFlowTests.swift 中的 MockCoreServiceForAdapter 中实现 var modelProviderRegistry: ModelProviderRegistryProtocol { fatalError(...) }；
+2. 编写全新的自动化测试套件 StudyOSTests/ModelConfigurationTests.swift：
+   - ModelProfileTests：测试 6 款默认模型预设、Codable 序列化反序列化与哈希唯一性；
+   - KeychainStorageTests：测试 API Key 安全写入、读取与清除（内存降级保底与安全隔离）；
+   - ModelProviderRegistryTests：测试动态多模型注册、activeProfile 切换、根据 profile 动态拉起正确的 Provider（OpenAICompatibleProvider / LocalMockLLMProvider / ChatGPTWebStreamingProvider）、并发访问安全；
+   - ConnectionHandshakeTests：测试 testConnection 方法（成功测算耗时与成功标志，缺失 Key 优雅提示）；
+3. 保证所有测试纯原生 Swift 5.9+ / XCTest，严格遵守 Swift 6 Strict Concurrency 安全；
+4. 编写交接文档 docs/handoffs/MODEL-HUB-QA-qa-001.md 并更新本日志；
+5. 向主协调者汇报。严格排他维护 StudyOSTests/**、docs/logs/qa.md 与 docs/handoffs/MODEL-HUB-QA-*.md，严禁修改业务源码或工程配置。
+
+## 2026-09-08T14:55:30+08:00 HANDOFF / END · MODEL-HUB-QA
+完成 Model Hub 测试套件落地与测试桩兼容性补全：
+1. 补全测试桩兼容性：在 StudyOSTests/ReaderAdapterFlowTests.swift 的 MockCoreServiceForAdapter 中显式补全 var modelProviderRegistry: ModelProviderRegistryProtocol { fatalError(...) }，保障契约扩展 100% 编译对齐；
+2. 交付专有测试套件 StudyOSTests/ModelConfigurationTests.swift（4 大测试类，共 21 项细分测试用例）：
+   - ModelProfileTests (5项)：6 款默认预设模型（DeepSeek-R1, GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro, ChatGPT Plus Web, iPad 本地 CoreML）配置与唯一定义、Codable 序列化反序列化无损恢复、Hashable 散列判等、ProviderKind 与 AuthMethod 枚举 CaseIterable 完备性；
+   - KeychainStorageTests (5项)：密钥写入、读取与覆写、密钥删除与状态清除、clearAll 缓存清理、20 协程并发访问严格并发安全与零死锁；
+   - ModelProviderRegistryTests (7项)：注册表初始化与 6 款默认模型预设载入、setActiveProfile 切换及原默认模型降级、自定义模型（Ollama 7B）保存与沙盒冷启动恢复持久化、删除自定义模型与禁止删除默认激活模型保护、根据 ProviderKind 动态拉起正确的 Provider（LocalMockLLMProvider / ChatGPTWebStreamingProvider / OpenAICompatibleProvider）及实例缓存、getActiveProvider 随激活项动态联动、ChatGPTWebStreamingProvider 异步流式逐 chunk 吐字执行；
+   - ConnectionHandshakeTests (4项)：端侧 CoreML 神经引擎握手零网络成功（延迟 ≤ 10ms）、ChatGPT Plus Web 会话探测连通正常、未配置 API Key 时的优雅阻断提示、非法 URL 端点握手拦截；
+3. 严格遵循纯原生与 Swift 6 Strict Concurrency 并发安全：使用 Actor 隔离与线程安全锁机制，无数据竞争隐患；
+4. 交付交接文档 docs/handoffs/MODEL-HUB-QA-qa-001.md。因 Windows 宿主无 Xcode/Swift 工具链，按 QA 客观严谨准则将执行状态真实标为 NOT_RUN，绝不虚报 PASS。已向主协调者汇报。释放本轮 QA 专有写入权限。

@@ -134,6 +134,11 @@ public final class ReaderViewModel: ObservableObject {
     @Published public var retryEngineStats: RetryEngineStats?
     @Published public var offlinePackages: [ModelPackageMetadata] = []
     
+    // MARK: - M4+ Model Hub 多模型配置中心
+    @Published public var isModelConfigOpen: Bool = false
+    @Published public var activeModelProfile: AIModelProfile?
+    @Published public var availableProfiles: [AIModelProfile] = []
+    
     // 当前在途请求追踪标识 (用于与后端 AIServiceActor cancel 交互)
     private var activeRequestID: String?
     private var activeAttemptID: String?
@@ -204,6 +209,7 @@ public final class ReaderViewModel: ObservableObject {
         await loadAINotes()
         await checkLocalLLMStatus()
         await refreshNetworkAndOfflineResilience()
+        await loadModelProfiles()
     }
     
     // MARK: - 来源跳转
@@ -990,6 +996,41 @@ public final class ReaderViewModel: ObservableObject {
             displayToast("模型包校验失败: \(error.localizedDescription)")
             return nil
         }
+    }
+
+    // MARK: - M4+ Model Hub 多大模型工厂与配置中心联动
+    
+    /// 加载当前可用模型与激活模型
+    public func loadModelProfiles() async {
+        self.availableProfiles = await coreService.modelProviderRegistry.listProfiles()
+        self.activeModelProfile = await coreService.modelProviderRegistry.getActiveProfile()
+    }
+    
+    /// 一键切换当前激活的大模型
+    public func switchModel(profile: AIModelProfile) async {
+        do {
+            try await coreService.modelProviderRegistry.setActiveProfile(id: profile.id)
+            self.activeModelProfile = profile
+            await loadModelProfiles()
+            displayToast("已启用模型: \(profile.displayName)")
+        } catch {
+            displayToast("切换模型失败: \(error.localizedDescription)")
+        }
+    }
+    
+    /// 真实连接与握手测试
+    public func testConnection(profile: AIModelProfile, apiKey: String?) async throws -> (success: Bool, latencyMs: Int, message: String) {
+        return try await coreService.modelProviderRegistry.testConnection(profile: profile, apiKey: apiKey)
+    }
+    
+    /// 保存并注册自定义 API 模型配置
+    public func saveCustomModelProfile(_ profile: AIModelProfile, apiKey: String?) async throws {
+        if let key = apiKey, !key.isEmpty, let storageKey = profile.apiKeyStorageKey {
+            try await KeychainStorageManager.shared.saveSecret(key, forKey: storageKey)
+        }
+        try await coreService.modelProviderRegistry.saveProfile(profile)
+        await loadModelProfiles()
+        displayToast("已保存模型配置: \(profile.displayName)")
     }
 
     public func displayToast(_ message: String) {

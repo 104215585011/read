@@ -11,6 +11,10 @@ public struct ReaderContainerView: View {
     @ObservedObject public var viewModel: ReaderViewModel
     @Environment(\.dismiss) private var dismiss
     
+    // M4+ 平铺式可拖拽分割布局
+    @State private var sidebarWidth: CGFloat = 380
+    @State private var initialDragWidth: CGFloat? = nil
+    
     public init(viewModel: ReaderViewModel) {
         self.viewModel = viewModel
     }
@@ -18,7 +22,10 @@ public struct ReaderContainerView: View {
     public var body: some View {
         GeometryReader { geometry in
             let totalWidth = geometry.size.width
-            let isWideScreen = totalWidth >= StudyTheme.Layout.splitThresholdWidth
+            let minSidebarWidth: CGFloat = 260
+            let maxSidebarWidth: CGFloat = max(minSidebarWidth, totalWidth - 360)
+            let effectiveSidebarWidth = min(max(sidebarWidth, minSidebarWidth), maxSidebarWidth)
+            let readingWidth = viewModel.isAISidebarOpen ? max(360, totalWidth - effectiveSidebarWidth - 8) : totalWidth
             
             VStack(spacing: 0) {
                 // 1. 沉浸式顶部导航栏
@@ -27,23 +34,19 @@ public struct ReaderContainerView: View {
                 Divider()
                     .background(StudyTheme.Colors.divider)
                 
-                // 2. 主体工作区 (自适应 70/30 分栏 或 单视口)
+                // 2. 主体工作区 (平铺式可拖拽分割布局)
                 HStack(spacing: 0) {
-                    // 左侧主阅读视口 (受 540pt 最小舒适下限保护)
+                    // 左侧主阅读视口
                     mainReadingCanvas
-                        .frame(
-                            width: isWideScreen && viewModel.isAISidebarOpen
-                                ? max(StudyTheme.Layout.minimumReaderWidth, totalWidth - sidebarWidth(for: totalWidth))
-                                : totalWidth
-                        )
+                        .frame(width: readingWidth)
                     
-                    // 右侧 AI 助学侧栏 (宽屏分栏展示)
-                    if isWideScreen && viewModel.isAISidebarOpen {
-                        Divider()
-                            .background(StudyTheme.Colors.divider)
+                    // 中间竖向可拖拽分割条 (配微手柄胶囊)
+                    if viewModel.isAISidebarOpen {
+                        resizerDivider(totalWidth: totalWidth)
                         
-                        AISidebarView(viewModel: viewModel)
-                            .frame(width: sidebarWidth(for: totalWidth))
+                        // 右侧 AI 助学侧栏 (平铺分栏展示)
+                        AISidebarView(viewModel: viewModel, hostWidth: effectiveSidebarWidth)
+                            .frame(width: effectiveSidebarWidth)
                             .transition(.move(edge: .trailing))
                     }
                 }
@@ -52,17 +55,14 @@ public struct ReaderContainerView: View {
                 Divider()
                     .background(StudyTheme.Colors.divider)
                 
-                // 3. 底栏物理页码指示与滑块
-                readerBottomBar
+                // 3. 底栏物理页码指示与滑块 (带分栏比例显示)
+                readerBottomBar(totalWidth: totalWidth)
             }
             .background(viewModel.selectedPaperTheme.backgroundColor)
             .preferredColorScheme(viewModel.selectedPaperTheme.isDark ? .dark : nil)
-            // 窄屏下 AI 侧栏转为自适应抽屉 Sheet
-            .sheet(isPresented: Binding(
-                get: { !isWideScreen && viewModel.isAISidebarOpen },
-                set: { viewModel.isAISidebarOpen = $0 }
-            )) {
-                AISidebarView(viewModel: viewModel)
+            // 大模型配置中心模态 (Model Hub)
+            .sheet(isPresented: $viewModel.isModelConfigOpen) {
+                ModelConfigurationSheet(viewModel: viewModel)
             }
             // 全文学习视图模态 (R10)
             .sheet(isPresented: $viewModel.isFullStudyViewOpen) {
@@ -83,11 +83,42 @@ public struct ReaderContainerView: View {
         }
     }
     
-    // 计算 AI 侧栏宽度 (限制在 [320, 400] pt 且保障阅读区 >= 540pt)
-    private func sidebarWidth(for totalWidth: CGFloat) -> CGFloat {
-        let maxAllowedSidebar = totalWidth - StudyTheme.Layout.minimumReaderWidth
-        let target = totalWidth * 0.30
-        return min(StudyTheme.Layout.sidebarMaxWidth, max(StudyTheme.Layout.sidebarMinWidth, min(target, maxAllowedSidebar)))
+    // MARK: - 可拖拽竖向分割条 (配微手柄胶囊)
+    private func resizerDivider(totalWidth: CGFloat) -> some View {
+        ZStack {
+            Rectangle()
+                .fill(StudyTheme.Colors.divider)
+                .frame(width: 8)
+            
+            // 微手柄胶囊（三圆点）
+            Capsule()
+                .fill(Color.secondary.opacity(0.35))
+                .frame(width: 4, height: 36)
+                .overlay(
+                    VStack(spacing: 3) {
+                        Circle().fill(Color.white).frame(width: 2, height: 2)
+                        Circle().fill(Color.white).frame(width: 2, height: 2)
+                        Circle().fill(Color.white).frame(width: 2, height: 2)
+                    }
+                )
+        }
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { value in
+                    let minSidebarWidth: CGFloat = 260
+                    let maxSidebarWidth: CGFloat = max(minSidebarWidth, totalWidth - 360)
+                    if initialDragWidth == nil {
+                        initialDragWidth = sidebarWidth
+                    }
+                    let base = initialDragWidth ?? sidebarWidth
+                    let newWidth = base - value.translation.width
+                    sidebarWidth = min(max(newWidth, minSidebarWidth), maxSidebarWidth)
+                }
+                .onEnded { _ in
+                    initialDragWidth = nil
+                }
+        )
     }
     
     // MARK: - 顶部沉浸式导航栏
@@ -276,7 +307,8 @@ public struct ReaderContainerView: View {
     }
     
     // MARK: - 底栏物理页码指示与滑块
-    private var readerBottomBar: some View {
+    // MARK: - 底栏物理页码指示与滑块
+    private func readerBottomBar(totalWidth: CGFloat) -> some View {
         HStack(spacing: StudyTheme.Spacing.lg) {
             // 书签切换按钮
             Button {
@@ -300,6 +332,20 @@ public struct ReaderContainerView: View {
                 in: 0...Double(max(0, viewModel.adapter.pageCount - 1)),
                 step: 1.0
             )
+            
+            // 分栏比例指示 (PDF % | AI %)
+            if viewModel.isAISidebarOpen && totalWidth > 0 {
+                let aiRatio = Int(round((sidebarWidth / totalWidth) * 100))
+                let pdfRatio = max(0, 100 - aiRatio)
+                Text("PDF \(pdfRatio)% | AI \(aiRatio)%")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.primary.opacity(0.08))
+                    .foregroundColor(.secondary)
+                    .clipShape(Capsule())
+            }
             
             // 1-based 物理页码指示 (UIREV-04)
             Text("第 \(viewModel.adapter.currentPageIndex0 + 1) 页 / 共 \(max(1, viewModel.adapter.pageCount)) 页")

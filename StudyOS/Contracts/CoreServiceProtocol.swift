@@ -39,6 +39,18 @@ public protocol NoteServiceProtocol: Sendable {
     func deleteNote(id: String) async throws -> Bool
 }
 
+/// 模型提供者注册表与动态工厂协议 (Model Hub)
+public protocol ModelProviderRegistryProtocol: Sendable {
+    func listProfiles() async -> [AIModelProfile]
+    func getActiveProfile() async -> AIModelProfile
+    func setActiveProfile(id: String) async throws
+    func saveProfile(_ profile: AIModelProfile) async throws
+    func deleteProfile(id: String) async throws -> Bool
+    func getProvider(for profile: AIModelProfile) async throws -> LLMProviderProtocol
+    func getActiveProvider() async throws -> LLMProviderProtocol
+    func testConnection(profile: AIModelProfile, apiKey: String?) async throws -> (success: Bool, latencyMs: Int, message: String)
+}
+
 /// 核心聚合服务门面协议 (CoreServiceProtocol)
 public protocol CoreServiceProtocol: Sendable {
     var documentService: DocumentServiceProtocol { get }
@@ -52,6 +64,7 @@ public protocol CoreServiceProtocol: Sendable {
     var offlineResourceManager: OfflineResourceManagerProtocol { get }
     var networkRetryEngine: NetworkResilienceRetryEngineProtocol { get }
     var localModelPackageManager: LocalModelPackageManagerProtocol? { get }
+    var modelProviderRegistry: ModelProviderRegistryProtocol { get }
 
     func resolveSource(_ anchor: SourceAnchor) async -> SourceResolution
     func flushInk(snapshot: InkSaveSnapshot) async -> Result<InkSaveReceipt, SaveInkError>
@@ -69,6 +82,10 @@ public extension CoreServiceProtocol {
 
     var localModelPackageManager: LocalModelPackageManagerProtocol? {
         nil
+    }
+
+    var modelProviderRegistry: ModelProviderRegistryProtocol {
+        fatalError("modelProviderRegistry not implemented in mock")
     }
 }
 

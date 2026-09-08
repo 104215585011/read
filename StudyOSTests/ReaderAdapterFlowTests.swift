@@ -51,6 +51,10 @@ final class MockCoreServiceForAdapter: CoreServiceProtocol, @unchecked Sendable 
         nil
     }
 
+    var modelProviderRegistry: ModelProviderRegistryProtocol {
+        fatalError("ModelProviderRegistry not accessed in ReaderAdapter unit tests")
+    }
+
     func resolveSource(_ anchor: SourceAnchor) async -> SourceResolution {
         if let handler = resolveSourceHandler {
             return await handler(anchor)

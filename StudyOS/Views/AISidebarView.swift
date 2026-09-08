@@ -5,6 +5,7 @@ import SwiftUI
 /// 包含：三级范围选择器、六段式助学卡片流、自由问答流与来源校验胶囊
 public struct AISidebarView: View {
     @ObservedObject public var viewModel: ReaderViewModel
+    public var hostWidth: CGFloat = 380
     @State private var selectedTab: AISidebarTab = .studyGuide
     
     public enum AISidebarTab: String, CaseIterable {
@@ -12,8 +13,25 @@ public struct AISidebarView: View {
         case askAI = "自由问答"
     }
     
-    public init(viewModel: ReaderViewModel) {
+    public enum AdaptiveTier {
+        case compact   // < 320pt: 紧凑模式
+        case standard  // 320~460pt: 标准学术模式
+        case expanded  // > 460pt: 展开模式 (双列网格)
+    }
+    
+    private var currentTier: AdaptiveTier {
+        if hostWidth < 320 {
+            return .compact
+        } else if hostWidth <= 460 {
+            return .standard
+        } else {
+            return .expanded
+        }
+    }
+    
+    public init(viewModel: ReaderViewModel, hostWidth: CGFloat = 380) {
         self.viewModel = viewModel
+        self.hostWidth = hostWidth
     }
     
     public var body: some View {
@@ -55,19 +73,41 @@ public struct AISidebarView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("AI 助学范围")
-                        .font(.caption2)
+                        .font(currentTier == .compact ? .system(size: 10) : .caption2)
                         .foregroundColor(.secondary)
                     
                     HStack(spacing: 6) {
                         Image(systemName: scopeIconName)
                             .foregroundColor(StudyTheme.Colors.primary)
                         Text(scopeDescription)
-                            .font(.subheadline)
+                            .font(currentTier == .compact ? .caption : .subheadline)
                             .fontWeight(.semibold)
                     }
                 }
                 
                 Spacer()
+                
+                // M4+ 大模型选择胶囊 (调起 ModelConfigurationSheet)
+                Button {
+                    viewModel.isModelConfigOpen = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "cpu")
+                            .font(.system(size: 11))
+                        Text(modelCapsuleName)
+                            .font(currentTier == .compact ? .caption2 : .caption)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8, weight: .bold))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(StudyTheme.Colors.primary.opacity(0.12))
+                    .foregroundColor(StudyTheme.Colors.primary)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
                 
                 // 全文研读快捷入口
                 Button {
@@ -75,10 +115,12 @@ public struct AISidebarView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chart.bar.doc.horizontal")
-                        Text("全文研读")
+                        if currentTier != .compact {
+                            Text("全文研读")
+                        }
                     }
                     .font(.caption)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, currentTier == .compact ? 6 : 8)
                     .padding(.vertical, 4)
                     .background(StudyTheme.Colors.secondary.opacity(0.12))
                     .foregroundColor(StudyTheme.Colors.secondary)
@@ -92,7 +134,9 @@ public struct AISidebarView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "note.text")
-                        Text("AI 笔记")
+                        if currentTier != .compact {
+                            Text("AI 笔记")
+                        }
                         if !viewModel.aiNotes.isEmpty {
                             Text("\(viewModel.aiNotes.count)")
                                 .font(.caption2)
@@ -103,7 +147,7 @@ public struct AISidebarView: View {
                         }
                     }
                     .font(.caption)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, currentTier == .compact ? 6 : 8)
                     .padding(.vertical, 4)
                     .background(StudyTheme.Colors.accent.opacity(0.12))
                     .foregroundColor(StudyTheme.Colors.accent)
@@ -302,10 +346,19 @@ public struct AISidebarView: View {
                     icon: "checklist",
                     color: StudyTheme.Colors.secondary
                 ) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        bulletRow("关注不可变快照在任务入队前的内存固化机制")
-                        bulletRow("对比 0-based 内部逻辑页码与物理页码显示映射")
-                        bulletRow("识别异步操作完成后对主执行域会话一致性的校验边界")
+                    if currentTier == .expanded {
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                            takeawayCardBox("不可变快照任务入队前的内存固化机制")
+                            takeawayCardBox("0-based 逻辑页码与物理显示页映射对比")
+                            takeawayCardBox("异步完成后主执行域会话一致性核对")
+                            takeawayCardBox("Apple Pencil 硬件手势双击与防掌压误触")
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: currentTier == .compact ? 4 : 6) {
+                            bulletRow("关注不可变快照在任务入队前的内存固化机制")
+                            bulletRow("对比 0-based 内部逻辑页码与物理页码显示映射")
+                            bulletRow("识别异步操作完成后对主执行域会话一致性的校验边界")
+                        }
                     }
                 }
                 
@@ -317,10 +370,10 @@ public struct AISidebarView: View {
                 ) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("• Swift 结构化并发模型 (Task, @MainActor)")
-                            .font(.caption)
+                            .font(currentTier == .compact ? .system(size: 11) : .caption)
                             .foregroundColor(.secondary)
                         Text("• Apple PencilKit 矢量笔划序列化协议")
-                            .font(.caption)
+                            .font(currentTier == .compact ? .system(size: 11) : .caption)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -331,9 +384,18 @@ public struct AISidebarView: View {
                     icon: "lightbulb",
                     color: Color.purple
                 ) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        conceptRow(title: "ReaderAdapter", desc: "解耦 SwiftUI 响应式状态与底层 PDFKit/PencilKit 命令式生命周期")
-                        conceptRow(title: "PageKey", desc: "由 documentID + revision + pageIndex0 构成的单页手写隔离主键")
+                    if currentTier == .expanded {
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                            conceptCardBox(title: "ReaderAdapter", desc: "解耦 SwiftUI 状态与 PDFKit/PencilKit 生命周期")
+                            conceptCardBox(title: "PageKey", desc: "由 documentID + rev + pageIndex0 组成的主键")
+                            conceptCardBox(title: "Model Hub", desc: "纯原生动态多大模型工厂与 Keychain 凭据中心")
+                            conceptCardBox(title: "SourceAnchor", desc: "基于物理页与归一化坐标的双向来源锚点")
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: currentTier == .compact ? 4 : 8) {
+                            conceptRow(title: "ReaderAdapter", desc: "解耦 SwiftUI 响应式状态与底层 PDFKit/PencilKit 命令式生命周期")
+                            conceptRow(title: "PageKey", desc: "由 documentID + revision + pageIndex0 构成的单页手写隔离主键")
+                        }
                     }
                 }
                 
@@ -706,6 +768,53 @@ public struct AISidebarView: View {
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }
+    }
+    
+    // MARK: - M4+ 自适应展开模式卡片组件
+    private func takeawayCardBox(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.caption2)
+                .foregroundColor(StudyTheme.Colors.secondary)
+            Text(text)
+                .font(.footnote)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(StudyTheme.Colors.secondary.opacity(0.06))
+        .cornerRadius(StudyTheme.Radius.sm)
+    }
+    
+    private func conceptCardBox(title: String, desc: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(Color.purple)
+            Text(desc)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .lineLimit(2)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.purple.opacity(0.06))
+        .cornerRadius(StudyTheme.Radius.sm)
+    }
+    
+    private var modelCapsuleName: String {
+        if let active = viewModel.activeModelProfile {
+            if active.displayName.contains("DeepSeek") { return "DeepSeek-R1" }
+            if active.displayName.contains("GPT-4o") { return "GPT-4o" }
+            if active.displayName.contains("Claude") { return "Claude 3.5" }
+            if active.displayName.contains("Gemini") { return "Gemini 1.5" }
+            if active.displayName.contains("CoreML") { return "端侧 CoreML" }
+            if active.displayName.contains("Plus") { return "ChatGPT Web" }
+            return String(active.displayName.prefix(12))
+        }
+        return "DeepSeek-R1"
     }
 }
 

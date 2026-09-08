@@ -13,6 +13,7 @@ public final class CoreService: CoreServiceProtocol, Sendable {
     public let offlineResourceManager: OfflineResourceManagerProtocol
     public let networkRetryEngine: NetworkResilienceRetryEngineProtocol
     public let localModelPackageManager: LocalModelPackageManagerProtocol?
+    public let modelProviderRegistry: ModelProviderRegistryProtocol
 
     public init(
         documentService: DocumentServiceProtocol,
@@ -25,7 +26,8 @@ public final class CoreService: CoreServiceProtocol, Sendable {
         fullDocumentStudyService: FullDocumentStudyProtocol? = nil,
         offlineResourceManager: OfflineResourceManagerProtocol = OfflineResourceManager(),
         networkRetryEngine: NetworkResilienceRetryEngineProtocol = NetworkResilienceRetryEngine(),
-        localModelPackageManager: LocalModelPackageManagerProtocol? = nil
+        localModelPackageManager: LocalModelPackageManagerProtocol? = nil,
+        modelProviderRegistry: ModelProviderRegistryProtocol = ModelProviderRegistry()
     ) {
         self.documentService = documentService
         self.readerCoreService = readerCoreService
@@ -44,6 +46,7 @@ public final class CoreService: CoreServiceProtocol, Sendable {
         self.localModelPackageManager = localModelPackageManager ?? LocalModelPackageManager(
             offlineResourceManager: offlineResourceManager
         )
+        self.modelProviderRegistry = modelProviderRegistry
     }
 
     /// 快捷单例构造（集成默认沙盒与 Actor 引擎）
@@ -56,6 +59,9 @@ public final class CoreService: CoreServiceProtocol, Sendable {
         localProvider: LocalLLMProviderProtocol? = LocalMockLLMProvider()
     ) -> CoreService {
         let sandbox = LocalSandboxManager.shared
+        // 确保冷启动时自动播种学术样例
+        sandbox.seedSampleAcademicDocumentIfEmpty()
+
         let metadataEngine = MetadataStorageEngine(sandbox: sandbox)
         let pageKeyIndexManager = PageKeyIndexManager()
         let inkEngine = InkStorageEngine(sandbox: sandbox, indexManager: pageKeyIndexManager)
@@ -73,6 +79,7 @@ public final class CoreService: CoreServiceProtocol, Sendable {
         let offlineRM = OfflineResourceManager(sandbox: sandbox)
         let retryEngine = NetworkResilienceRetryEngine()
         let modelPkgMgr = LocalModelPackageManager(offlineResourceManager: offlineRM)
+        let modelRegistry = ModelProviderRegistry(sandbox: sandbox)
 
         return CoreService(
             documentService: docService,
@@ -85,7 +92,8 @@ public final class CoreService: CoreServiceProtocol, Sendable {
             fullDocumentStudyService: fullStudySvc,
             offlineResourceManager: offlineRM,
             networkRetryEngine: retryEngine,
-            localModelPackageManager: modelPkgMgr
+            localModelPackageManager: modelPkgMgr,
+            modelProviderRegistry: modelRegistry
         )
     }
 
