@@ -159,8 +159,11 @@ public actor LocalModelPackageManager: LocalModelPackageManagerProtocol {
                 }
             } catch {
                 // 如果云端请求因网络原因或超时失败，且本地模型可保底，执行热降级
-                if retryPolicy.canRetry(error: error) && (await localProvider.isReady()) {
-                    return try await localProvider.streamCompletion(messages: messages, options: options)
+                if retryPolicy.canRetry(error: error) {
+                    let isLocalReady = await localProvider.isReady()
+                    if isLocalReady {
+                        return try await localProvider.streamCompletion(messages: messages, options: options)
+                    }
                 }
                 throw error
             }
