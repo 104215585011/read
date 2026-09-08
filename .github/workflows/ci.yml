@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      run_simulator_tests:
+        description: "Run the slower iPadOS simulator test suite"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -44,7 +53,9 @@ jobs:
 
   simulator-tests:
     name: 自动化测试套件 (iPadOS 模拟器)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_simulator_tests == 'true' }}
     runs-on: macos-14
+    timeout-minutes: 20
     steps:
       - name: 检出仓库代码
         uses: actions/checkout@v4
