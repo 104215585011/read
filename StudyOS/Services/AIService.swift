@@ -35,8 +35,13 @@ public actor AIService: AIServiceProtocol {
         context: AggregatedContext
     ) async throws -> AsyncThrowingStream<LLMChunk, Error> {
         let key = attemptKey(requestID: request.requestID, attemptID: request.attemptID)
-        guard attempts[key] == nil else {
-            throw LLMProviderError.invalidResponse("Attempt 已在运行或进入终态，禁止重复执行")
+        if let existing = attempts[key] {
+            switch existing {
+            case .preparing, .running:
+                throw LLMProviderError.invalidResponse("Attempt \(request.attemptID) 正在运行中，禁止重复执行")
+            case .terminal(let status):
+                throw LLMProviderError.invalidResponse("Attempt \(request.attemptID) 已进入终态 (\(status.rawValue))，禁止重复执行")
+            }
         }
         // Reserve before the first suspension: actor reentrancy must not dispatch twice.
         attempts[key] = .preparing
