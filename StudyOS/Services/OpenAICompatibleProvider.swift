@@ -115,6 +115,7 @@ public final class OpenAICompatibleProvider: LLMProviderProtocol, Sendable {
                         return
                     }
 
+                    var sawDone = false
                     // 逐行解析 SSE 响应
                     for try await line in asyncBytes.lines {
                         if Task.isCancelled {
@@ -131,6 +132,7 @@ public final class OpenAICompatibleProvider: LLMProviderProtocol, Sendable {
                         if trimmed.hasPrefix("data:") {
                             let dataPayload = trimmed.dropFirst(5).trimmingCharacters(in: .whitespaces)
                             if dataPayload == "[DONE]" {
+                                sawDone = true
                                 break
                             }
 
@@ -138,7 +140,13 @@ public final class OpenAICompatibleProvider: LLMProviderProtocol, Sendable {
                                 continue
                             }
 
-                            if let chunkResponse = try? JSONDecoder().decode(OpenAIChatChunkResponse.self, from: payloadData) {
+                            let chunkResponse: OpenAIChatChunkResponse
+                            do {
+                                chunkResponse = try JSONDecoder().decode(OpenAIChatChunkResponse.self, from: payloadData)
+                            } catch {
+                                throw LLMProviderError.invalidResponse("SSE 数据无效或服务返回错误事件")
+                            }
+                            do {
                                 for choice in chunkResponse.choices {
                                     if let textDelta = choice.delta?.content, !textDelta.isEmpty {
                                         let chunk = LLMChunk(
@@ -160,6 +168,10 @@ public final class OpenAICompatibleProvider: LLMProviderProtocol, Sendable {
                         }
                     }
 
+                    try Task.checkCancellation()
+                    guard sawDone else {
+                        throw LLMProviderError.invalidResponse("SSE 在结束标记之前中断，结果未完成")
+                    }
                     continuation.finish()
                 } catch let urlError as URLError {
                     if urlError.code == .cancelled {

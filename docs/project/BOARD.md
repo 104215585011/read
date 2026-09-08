@@ -11,9 +11,9 @@
 | M0-UI-REVIEW 方案审阅与联调补充 | PM Claude1 / QA Codex2；主协调者临时收口 | M0-UI-ui-001 | docs/project/**、docs/qa/**、对应个人日志 | PM 一致性报告与 QA 独立审阅/联调用例落盘，状态真实 | DONE |
 | M0-BE-REV2 契约定向补充 | Codex1；QA复核；PM接收 | UI002复核 | docs/backend/**、backend日志；QA/PM各自范围 | 四组契约映射补齐并经QA设计复核 | DONE |
 | M1-SETUP 原生工程与阅读切片 | Codex1(工程/服务) + Claude2(UI/适配) + Codex2(测试套件) | M0 全部文档收口，真实 Mac 构建环境就绪 | 工程配置独占写者 Codex1；UI/服务/测试目录严格隔离 | CI 云端构建通过 (macOS-14 / Xcode 15.4 / iPadOS 17.5 模拟器)，26 项自动化单元测试全量 PASS，无编译错误与并发警告 | DONE |
-| M2-BE 核心服务与 Provider 基础设施 | 项目后端 Codex1 | M1-SETUP 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`docs/backend/**`、`docs/logs/backend.md` | 本地 LLM Provider 抽象（OpenAI/Anthropic 兼容流式客户端、SSE 解析、超时与取消、网络错误映射）、五级上下文动态清单聚合器（ContextAggregator）、PDF 文本/大纲抽取优化 | IN_PROGRESS |
-| M2-UI 交互流与 AI 呈现落地 | UI 总监 Claude2 | M2-BE 核心服务接口/数据模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | AI 侧栏流式打字机呈现与终态管理（failed/cancelled 互斥）、选区浮动菜单与高亮落地、设置/API Key 配置面板 | READY |
-| M2-QA 自动化测试与端到端验证 | 项目测试 Codex2 | M2-BE/UI 实施交付物 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | Provider 流式网络 Mock 测试、上下文清单过滤断言、阅读与笔记持久化端到端测试套件 | READY |
+| M2-BE 核心服务与 Provider 基础设施 | 项目后端 Codex1 | M1-SETUP 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`docs/backend/**`、`docs/logs/backend.md` | 本地 LLM Provider 抽象（OpenAI/Anthropic 兼容流式客户端、SSE 解析、超时与取消、网络错误映射）、五级上下文动态清单聚合器（ContextAggregator）、真实 CryptoKit SHA-256 哈希、不可变 AggregatedContext 传递 | READY_FOR_QA |
+| M2-UI 交互流与 AI 呈现落地 | UI 总监 Claude2 / 主协调者临时迁移 | M2-BE 核心服务接口/数据模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | AI 侧栏流式打字机呈现与终态管理（failed/cancelled 互斥）、真实物理页文本提取与不可变 AggregatedContext 传递、选区浮动菜单与高亮落地、设置/API Key 配置面板 | READY_FOR_QA |
+| M2-QA 自动化测试与端到端验证 | 项目测试 Codex2 | M2-BE/UI 实施交付物 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | Provider 流式网络 Mock 测试、M2 回归用例（真实物理页正文传输、章节边界覆盖、SHA-256 全量哈希、请求握手防并发重入、SSE 协议校验）、云端 CI 39/39 测试通过 | WAITING_CI |
 
 每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M1-SETUP 已全量收口闭环（DONE）。
 
@@ -182,3 +182,11 @@ PM Claude1 正式将 **M1-SETUP 状态更新为 DONE**，宣告原生工程脚�
    - **Claude2 接棒推进 M2-UI**：对接后端 Provider 协议与 ViewModel，实现流式打字机、选区菜单、设置面板及引用高亮联动，产出 UI 交接文档；
 3. **第三波次（实施完成后闭环）**：
    - **Codex2 推进 M2-QA**：接入 Mock 与端到端测试，提交云端 CI 验证并出具测试验收报告。
+
+## M2 实施与回归测试就绪记录
+
+2026-09-08T08:53:00+08:00：M2 阶段核心服务与 UI 迁移已完成真实正文传输与 SHA-256 闭环：
+1. **M2-BE**：Codex1 完成原生 CryptoKit SHA-256 哈希改造，引入不可变 `AggregatedContext` 与 `generateStream(request:context:)` 强校验；对 `.document` scope 显式实施分批限制保护，杜绝目录伪造全文正文；已交付 `docs/handoffs/M2-BE-REVIEW-backend-001.md` 与 `docs/handoffs/M2-BE-FIX3-backend-001.md`。状态置为 **`READY_FOR_QA`**。
+2. **M2-UI**：主协调者依据 PM 授权 `docs/handoffs/M2-UI-CONTEXT-ROUTE-pm-001.md` 完成 `ReaderViewModel.swift` 最小迁移，接入真实物理页文本提取并全链路透传不可变 `AggregatedContext`，杜绝空正文与二次篡改；细化 Cancellation 与 LocalizedError 状态映射；产出交接 `docs/handoffs/M2-UI-CONTEXT-MIGRATION-coordinator-001.md` 并即刻解除文件独占锁定归还 Claude2。状态置为 **`READY_FOR_QA`**。
+3. **M2-QA**：Codex2 完成回归用例扩充（`StudyOSTests/M2RegressionTests.swift` 8 项回归测试，覆盖真实物理页正文传递、章节边界覆盖、SHA-256 全量哈希、握手防并发重入、SSE 协议校验），总测试用例扩充至 39 项；已交付 `docs/handoffs/M2-QA-REGRESSION-qa-001.md`。状态置为 **`WAITING_CI`**。
+4. **验证条件**：全量代码已准备就绪，提交推送触发 GitHub Actions（macOS-14 / Xcode 15.4 / iPadOS 17.5 模拟器），等待真实 39/39 测试套件绿灯执行证据。

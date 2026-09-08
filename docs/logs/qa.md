@@ -108,3 +108,6 @@
 4. 加固 StudyOSTests/StorageActorTests.swift：在 testConcurrentInkSavingAcrossPages 中预先提取 Sendable engine 局部引用，彻底杜绝 group.addTask 闭包对非 Sendable self 的跨并发域捕获；
 5. 全量检查 ContractTests、ModelTests、StudyOSTests，确认无其他并发警告隐患；
 6. 交付交接文档 docs/handoffs/M2-QA-FIX-qa-001.md。全量真机执行状态依据规则客观标注为 NOT_RUN。已向主协调者汇报。释放本轮 QA 专有写入权限。
+
+## 2026-09-08T08:33:43+08:00 READ_ACK / START · M2-RECHECK-QA
+读取AGENTS、QA职责、WORKFLOW、BOARD、PRD及7份M2交接（BE/FIX/FIX2/KICKOFF/QA/QA-FIX/UI）。当前HEAD 4f7b9a9，已有协调者日志修改不触碰。限定仅QA文档、本人日志及交接；不改代码，不声称Xcode运行。

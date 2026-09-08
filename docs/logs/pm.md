@@ -40,3 +40,11 @@
 - 2026-09-07T23:52:30+08:00 | UPDATE | Claude1 / 项目经理 | M2-KICKOFF | 更新 docs/project/BOARD.md 与 docs/project/PLAN.md：拆解 M2 具体子任务（M2-BE、M2-UI、M2-QA）与排他目录边界；M2-BE 置为 IN_PROGRESS，M2-UI 和 M2-QA 置为 READY。
 - 2026-09-07T23:52:30+08:00 | HANDOFF / END | Claude1 / 项目经理 | M2-KICKOFF | 产出 M2 启动交接与任务授权文档 docs/handoffs/M2-KICKOFF-pm-001.md。正式授权 Codex1 启动 M2-BE 核心服务实施。向主协调者（parent）汇报并交接。释放本轮 PM 编辑权限。
 
+
+- 2026-09-08T08:34:10.1252858+08:00 | READ_ACK | M2-CLOSE-PM | 已读AGENTS、Claude1-PM、WORKFLOW、BOARD、完整PRD及M2全部7份交接（KICKOFF、BE、BE-FIX、BE-FIX2、UI、QA、QA-FIX）。
+- 2026-09-08T08:34:10.1252858+08:00 | START / ACCEPTED | M2-CLOSE-PM | 核对main@4f7b9a9；既有coordinator日志修改保留；只写PM范围，交付不代表测试通过。
+- 2026-09-08T08:36:29.6765888+08:00 | UPDATE / HANDOFF | M2-CLOSE-PM | BOARD已反映交付/返修/QA；新增收口检查表与M2-CLOSE-PM-pm-001交接。git main@4f7b9a9静态核对，未运行产品测试。
+- 2026-09-08T08:36:29.6765888+08:00 | END | M2-CLOSE-PM | PM本轮编排完成，M2产品阶段未关闭；待最终CI/QA/设备证据。未改他人文件。
+
+- 2026-09-08T08:38:39.0747135+08:00 | READ_ACK / START | M2-UI-CONTEXT-MIGRATION | 重读AGENTS、PM职责、WORKFLOW、BOARD、M2检查表及现有交接索引；审核临时UI最小路由。
+- 2026-09-08T08:39:20.3268244+08:00 | ROUTE / HANDOFF / END | M2-UI-CONTEXT-MIGRATION | 核实ReaderViewModel无未提交修改、旧UI已交付；依赖BE/QA交接后临时独占授权主协调者，写入唯一授权交接/BOARD/检查表；未改UI。全文scope阻塞保留。

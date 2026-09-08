@@ -2,6 +2,7 @@ import Foundation
 
 /// 正在执行的 AI 尝试上下文状态
 private enum AttemptState: Sendable {
+    case preparing
     case running(task: Task<Void, Never>, continuation: AsyncThrowingStream<LLMChunk, Error>.Continuation)
     case terminal(AIResultStatus) // completed, failed, cancelled
 }
@@ -26,94 +27,102 @@ public actor AIService: AIServiceProtocol {
         request: AIRequest,
         manifest: ContextManifest
     ) async throws -> AsyncThrowingStream<LLMChunk, Error> {
-        let key = "\(request.requestID)_\(request.attemptID)"
+        throw LLMProviderError.invalidResponse("仅有 Manifest 无法还原已确认正文；请传入 AggregatedContext")
+    }
 
-        // 终态检查：若该 attempt 已经进入终态，禁止重复触发
-        if let existing = attempts[key] {
-            switch existing {
-            case .terminal(let status):
-                throw LLMProviderError.invalidResponse("Attempt \(request.attemptID) 已进入终态 (\(status.rawValue))，禁止重复执行")
-            case .running:
-                throw LLMProviderError.invalidResponse("Attempt \(request.attemptID) 正在运行中")
+    public func generateStream(
+        request: AIRequest,
+        context: AggregatedContext
+    ) async throws -> AsyncThrowingStream<LLMChunk, Error> {
+        let key = attemptKey(requestID: request.requestID, attemptID: request.attemptID)
+        guard attempts[key] == nil else {
+            throw LLMProviderError.invalidResponse("Attempt 已在运行或进入终态，禁止重复执行")
+        }
+        // Reserve before the first suspension: actor reentrancy must not dispatch twice.
+        attempts[key] = .preparing
+        do {
+            try Task.checkCancellation()
+            guard context.capturedRequest == request,
+                  context.manifest.providerSnapshot == provider.snapshot,
+                  request.providerProfileID == provider.profileID else {
+                throw LLMProviderError.invalidResponse("上下文请求或 Provider 已变化，请重新准备并确认")
             }
+            guard let document = await metadataEngine.getDocument(id: request.documentID),
+                  document.revision == request.documentRevision else {
+                throw LLMProviderError.invalidResponse("文档不存在或版本已变化")
+            }
+            try Task.checkCancellation()
+            if isAttemptCancelled(key: key) { throw LLMProviderError.cancelled }
+            let pages: [Int]
+            switch request.scope {
+            case .selection(let anchor):
+                guard anchor.documentID == request.documentID,
+                      anchor.documentRevision == request.documentRevision,
+                      anchor.availability == .active,
+                      !(anchor.quote ?? "").isEmpty else {
+                    throw LLMProviderError.invalidResponse("选区无效或没有文本")
+                }
+                pages = [anchor.pageIndex0]
+            case .page(let index): pages = [index]
+            case .chapter(_, let start, let end):
+                guard start >= 0, end >= start, end < document.pageCount else {
+                    throw LLMProviderError.invalidResponse("章节页范围无效")
+                }
+                pages = Array(start...end)
+            case .document:
+                throw LLMProviderError.unsupportedCapability("全文学习需独立分批任务，不能将目录当全文正文")
+            }
+            guard pages.allSatisfy({ $0 >= 0 && $0 < document.pageCount }),
+                  pages.allSatisfy({ page in context.manifest.outboundItems.contains {
+                      $0.kind == .documentText && $0.pageCoverage.contains(page) && $0.byteCount > 0
+                  } }) else {
+                throw LLMProviderError.invalidResponse("请求范围缺少正文，请完成文本提取后重新准备上下文")
+            }
+        } catch {
+            let cancelled = isAttemptCancelled(key: key) || error is CancellationError || (error as? LLMProviderError) == .cancelled
+            markTerminal(key: key, status: cancelled ? .cancelled : .failed)
+            throw cancelled ? LLMProviderError.cancelled : error
         }
 
-        // 1. 组装 LLM 输入消息
-        let aggregator = ContextAggregator()
-        let aggregated = aggregator.buildContext(
-            request: request,
-            providerSnapshot: provider.snapshot,
-            document: await metadataEngine.getDocument(id: request.documentID)
-        )
-
-        let messages: [LLMMessage] = [
-            LLMMessage(role: .system, content: aggregated.systemPrompt),
-            LLMMessage(role: .user, content: aggregated.userPrompt)
-        ]
-
-        let options = LLMCompletionOptions(temperature: 0.7, timeoutInterval: 45.0)
-
-        // 2. 调用底座 Provider 获取底层流
-        let underlyingStream = try await provider.streamCompletion(messages: messages, options: options)
-
-        // 3. 包装返回上层安全流，并在 Actor 内记录 Task 与终态裁决
+        let messages = context.messages
+        let options = LLMCompletionOptions(temperature: 0.7, maxTokens: context.manifest.reservedOutputTokens, timeoutInterval: 45.0)
         return AsyncThrowingStream<LLMChunk, Error> { continuation in
             let streamingTask = Task {
-                var isTerminalRecorded = false
-
                 do {
+                    try Task.checkCancellation()
+                    // Handshake belongs to the registered task, so cancel works before the first byte.
+                    let underlyingStream = try await self.provider.streamCompletion(messages: messages, options: options)
+                    try Task.checkCancellation()
                     for try await chunk in underlyingStream {
-                        // 如果被取消或进入终态，停止产出
-                        if Task.isCancelled {
-                            await self.markTerminal(key: key, status: .cancelled)
-                            isTerminalRecorded = true
-                            continuation.finish(throwing: LLMProviderError.cancelled)
-                            return
-                        }
-
-                        // 检查 Actor 内部当前 attempt 是否被外部标记为 cancelled
-                        if await self.isAttemptCancelled(key: key) {
-                            isTerminalRecorded = true
-                            continuation.finish(throwing: LLMProviderError.cancelled)
-                            return
-                        }
-
+                        try Task.checkCancellation()
+                        if self.isAttemptCancelled(key: key) { throw LLMProviderError.cancelled }
                         continuation.yield(chunk)
                     }
-
-                    // 正常流结束，标记为 completed
-                    await self.markTerminal(key: key, status: .completed)
-                    isTerminalRecorded = true
+                    try Task.checkCancellation()
+                    if self.isAttemptCancelled(key: key) { throw LLMProviderError.cancelled }
+                    self.markTerminal(key: key, status: .completed)
                     continuation.finish()
-                } catch is CancellationError {
-                    await self.markTerminal(key: key, status: .cancelled)
-                    isTerminalRecorded = true
-                    continuation.finish(throwing: LLMProviderError.cancelled)
                 } catch {
-                    // 任何网络或服务端异常，标记为 failed（failed 与 cancelled 互斥）
-                    let currentStatus = await self.currentStatus(key: key)
-                    if currentStatus != .cancelled {
-                        await self.markTerminal(key: key, status: .failed)
-                    }
-                    isTerminalRecorded = true
-                    continuation.finish(throwing: error)
+                    let cancelled = Task.isCancelled || self.isAttemptCancelled(key: key) || error is CancellationError || (error as? LLMProviderError) == .cancelled
+                    self.markTerminal(key: key, status: cancelled ? .cancelled : .failed)
+                    continuation.finish(throwing: cancelled ? LLMProviderError.cancelled : error)
                 }
             }
-
             self.registerAttempt(key: key, task: streamingTask, continuation: continuation)
-
             continuation.onTermination = { @Sendable _ in
                 streamingTask.cancel()
-                Task {
-                    await self.handleStreamTermination(key: key)
-                }
+                Task { await self.handleStreamTermination(key: key) }
             }
         }
     }
 
+    private func attemptKey(requestID: String, attemptID: String) -> String {
+        "\(requestID.utf8.count):\(requestID)\(attemptID)"
+    }
+
     /// 取消指定的 AI 尝试 (支持 alreadyTerminal 防御)
     public func cancel(requestID: String, attemptID: String) async -> Bool {
-        let key = "\(requestID)_\(attemptID)"
+        let key = attemptKey(requestID: requestID, attemptID: attemptID)
         guard let state = attempts[key] else {
             // 未找到该 attempt，直接记录为 cancelled
             attempts[key] = .terminal(.cancelled)
@@ -124,6 +133,9 @@ public actor AIService: AIServiceProtocol {
         case .terminal:
             // 契约规定：已终态的取消属于 alreadyTerminal，不覆写已有 failed 或 completed
             return false
+        case .preparing:
+            attempts[key] = .terminal(.cancelled)
+            return true
         case .running(let task, let continuation):
             attempts[key] = .terminal(.cancelled)
             task.cancel()
@@ -160,7 +172,7 @@ public actor AIService: AIServiceProtocol {
     private func handleStreamTermination(key: String) {
         guard let state = attempts[key] else { return }
         switch state {
-        case .running:
+        case .preparing, .running:
             attempts[key] = .terminal(.cancelled)
         case .terminal:
             break
@@ -176,7 +188,7 @@ public actor AIService: AIServiceProtocol {
         case .terminal:
             // alreadyTerminal: 保持首次终态，不被后续迟到事件覆写
             break
-        case .running:
+        case .preparing, .running:
             attempts[key] = .terminal(status)
         }
     }
@@ -192,7 +204,7 @@ public actor AIService: AIServiceProtocol {
     private func currentStatus(key: String) -> AIResultStatus? {
         guard let state = attempts[key] else { return nil }
         switch state {
-        case .running:
+        case .preparing, .running:
             return .running
         case .terminal(let status):
             return status

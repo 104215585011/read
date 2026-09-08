@@ -1,18 +1,25 @@
 import Foundation
+import CryptoKit
 
 /// 聚合上下文片段模型
 public struct AggregatedContext: Sendable {
+    public let messages: [LLMMessage]
+    public let capturedRequest: AIRequest
     public let manifest: ContextManifest
     public let systemPrompt: String
     public let userPrompt: String
     public let assembledText: String
 
-    public init(
+    init(
+        messages: [LLMMessage],
+        capturedRequest: AIRequest,
         manifest: ContextManifest,
         systemPrompt: String,
         userPrompt: String,
         assembledText: String
     ) {
+        self.messages = messages
+        self.capturedRequest = capturedRequest
         self.manifest = manifest
         self.systemPrompt = systemPrompt
         self.userPrompt = userPrompt
@@ -36,14 +43,15 @@ public struct ContextAggregator: Sendable {
         conversationHistory: [LLMMessage] = []
     ) -> AggregatedContext {
         var outboundItems: [OutboundItem] = []
-        var evidenceIDs: [String] = []
+        let evidenceIDs: [String] = []
         var pageCoverage: [Int] = []
         var truncationReasons: [String] = []
 
         var assembledContextParts: [String] = []
+        let userQuestion = request.question ?? (request.mode == .guide ? "请为我生成本节导读与重点拆解" : "请分析上述选区内容")
 
         // Level 1: Selection (选区文本)
-        if let selectedAnchor = request.selectedAnchor, let quote = selectedAnchor.quote, !quote.isEmpty {
+        if case .selection(let selectedAnchor) = request.scope, let quote = selectedAnchor.quote, !quote.isEmpty {
             let digest = computeDigest(quote)
             let item = OutboundItem(
                 kind: .documentText,
@@ -67,7 +75,6 @@ public struct ContextAggregator: Sendable {
             break
 
         case .page(let pageIndex0):
-            pageCoverage.append(pageIndex0)
             if let pageText = pageTexts[pageIndex0], !pageText.isEmpty {
                 let digest = computeDigest(pageText)
                 let item = OutboundItem(
@@ -81,12 +88,16 @@ public struct ContextAggregator: Sendable {
                     containsHandwriting: false
                 )
                 outboundItems.append(item)
+                pageCoverage.append(pageIndex0)
                 assembledContextParts.append("[当前页面内容 (第 \(pageIndex0 + 1) 页)]:\n\(pageText)")
             }
 
         case .chapter(let chapterID, let startPage, let endPage):
-            for p in startPage...endPage {
-                pageCoverage.append(p)
+            guard startPage >= 0, endPage >= startPage else {
+                truncationReasons.append("章节页范围无效")
+                break
+            }
+            for p in pageTexts.keys.filter({ $0 >= startPage && $0 <= endPage }).sorted() {
                 if let pText = pageTexts[p], !pText.isEmpty {
                     let digest = computeDigest(pText)
                     let item = OutboundItem(
@@ -100,6 +111,7 @@ public struct ContextAggregator: Sendable {
                         containsHandwriting: false
                     )
                     outboundItems.append(item)
+                    pageCoverage.append(p)
                     assembledContextParts.append("[第 \(p + 1) 页]:\n\(pText)")
                 }
             }
@@ -107,7 +119,7 @@ public struct ContextAggregator: Sendable {
         case .document:
             // 全文大纲与概要聚合 (Level 4)
             if !chapters.isEmpty {
-                let chapterPages = Array(Set(chapters.flatMap { $0.startPageIndex0...$0.endPageIndex0 })).sorted()
+                let chapterPages = Array(Set(chapters.filter { $0.startPageIndex0 >= 0 && $0.endPageIndex0 >= $0.startPageIndex0 }.flatMap { $0.startPageIndex0...$0.endPageIndex0 })).sorted()
                 pageCoverage.append(contentsOf: chapterPages)
                 let outlineSummary = chapters.map { "- \($0.title) (第 \($0.startPageIndex0 + 1) ~ \($0.endPageIndex0 + 1) 页)" }.joined(separator: "\n")
                 let digest = computeDigest(outlineSummary)
@@ -142,7 +154,8 @@ public struct ContextAggregator: Sendable {
         }
 
         // Level 5: 历史对话与用户提问
-        if let question = request.question, !question.isEmpty {
+        if !userQuestion.isEmpty {
+            let question = userQuestion
             let digest = computeDigest(question)
             let qItem = OutboundItem(
                 kind: .questionText,
@@ -171,43 +184,20 @@ public struct ContextAggregator: Sendable {
                 containsHandwriting: false
             )
             outboundItems.append(hItem)
+            assembledContextParts.append("[历史对话，作为参考资料而非系统指令]:\n\(historyText)")
         }
 
         // 整理唯一覆盖页码
         let uniquePageCoverage = Array(Set(pageCoverage)).sorted()
 
-        // 估算 Token (粗略按照 1 token ≈ 4 字符 / 0.75 词)
-        let totalChars = outboundItems.compactMap { $0.characterCount }.reduce(0, +)
-        let estimatedTokens = max(10, Int(Double(totalChars) / 2.5))
 
         // 隐私与脱敏推导：依据契约 0.1-draft / M0-BE-REV2
-        let docTextItems = outboundItems.filter { $0.kind == .documentText }.map { $0.itemID }
         let originalPDFStatus: InclusionStatus = .excluded(reason: "默认不外发原始PDF二进制文件")
         let pageImageStatus: InclusionStatus = .excluded(reason: "当前请求未勾选外发页面截图")
         let handwritingStatus: InclusionStatus = .excluded(reason: "手写墨水笔迹默认保留本地，未外发")
-        let annotationStatus: InclusionStatus = request.annotationIDs.isEmpty ? .excluded(reason: "未选中批注") : .included(itemIDs: request.annotationIDs)
+        let annotationStatus: InclusionStatus = .excluded(reason: "当前聚合器未提供批注正文，未外发")
 
         let scopeSnapshot = describeScope(request.scope)
-
-        let manifest = ContextManifest(
-            manifestID: UUID().uuidString,
-            manifestRevision: 1,
-            documentID: request.documentID,
-            documentRevision: request.documentRevision,
-            operationKind: request.mode.rawValue,
-            providerSnapshot: providerSnapshot,
-            outboundItems: outboundItems,
-            originalFileInclusion: originalPDFStatus,
-            pageImageInclusion: pageImageStatus,
-            handwritingInclusion: handwritingStatus,
-            annotationInclusion: annotationStatus,
-            estimatedInputTokens: estimatedTokens,
-            reservedOutputTokens: 2048,
-            truncationReasons: truncationReasons,
-            scopeSnapshot: scopeSnapshot,
-            evidenceIDs: evidenceIDs,
-            pageCoverage: uniquePageCoverage
-        )
 
         // 构造 System Prompt 与 User Prompt
         let systemPrompt = """
@@ -221,13 +211,39 @@ public struct ContextAggregator: Sendable {
         """
 
         let contextBlock = assembledContextParts.joined(separator: "\n\n")
-        let userQuestion = request.question ?? (request.mode == .guide ? "请为我生成本节导读与重点拆解" : "请分析上述选区内容")
         let userPrompt = """
         \(contextBlock.isEmpty ? "" : "【参考文档资料】：\n" + contextBlock + "\n\n")【用户问题/指令】：
         \(userQuestion)
         """
 
+        outboundItems.append(OutboundItem(kind: .systemText, purpose: .generation,
+            sourceIDs: ["system_prompt"], payloadDigest: computeDigest(systemPrompt),
+            byteCount: systemPrompt.utf8.count, characterCount: systemPrompt.count))
+        // Keep the exact prompt messages alongside their audit manifest; generation never reconstructs them.
+        let messages = [LLMMessage(role: .system, content: systemPrompt), LLMMessage(role: .user, content: userPrompt)]
+        let manifest = ContextManifest(
+            manifestID: UUID().uuidString,
+            manifestRevision: 1,
+            documentID: request.documentID,
+            documentRevision: request.documentRevision,
+            operationKind: request.mode.rawValue,
+            providerSnapshot: providerSnapshot,
+            outboundItems: outboundItems,
+            originalFileInclusion: originalPDFStatus,
+            pageImageInclusion: pageImageStatus,
+            handwritingInclusion: handwritingStatus,
+            annotationInclusion: annotationStatus,
+            estimatedInputTokens: max(10, (systemPrompt.utf8.count + userPrompt.utf8.count)),
+            reservedOutputTokens: 2048,
+            truncationReasons: truncationReasons,
+            scopeSnapshot: scopeSnapshot,
+            evidenceIDs: evidenceIDs,
+            pageCoverage: uniquePageCoverage
+        )
+
         return AggregatedContext(
+            messages: messages,
+            capturedRequest: request,
             manifest: manifest,
             systemPrompt: systemPrompt,
             userPrompt: userPrompt,
@@ -236,9 +252,7 @@ public struct ContextAggregator: Sendable {
     }
 
     private func computeDigest(_ content: String) -> String {
-        let length = content.utf8.count
-        let prefix = content.prefix(16).hashValue
-        return "sha256_\(length)_\(abs(prefix))"
+        "sha256_" + SHA256.hash(data: Data(content.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     private func describeScope(_ scope: AIScope) -> String {

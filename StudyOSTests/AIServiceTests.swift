@@ -320,10 +320,10 @@ final class AIServiceTests: XCTestCase {
         XCTAssertEqual(historyItems.first?.sourceIDs, ["conversation_history"])
 
         // 验证批注勾选状态
-        if case .included(let itemIDs) = manifest.annotationInclusion {
-            XCTAssertEqual(itemIDs, ["anno_101", "anno_102"])
+        if case .excluded = manifest.annotationInclusion {
+            XCTAssertFalse(manifest.outboundItems.contains(where: { $0.kind == .annotationText }))
         } else {
-            XCTFail("annotationInclusion should include anno_101 and anno_102")
+            XCTFail("Annotation IDs alone must not claim transmitted annotation text")
         }
     }
 
@@ -357,14 +357,10 @@ final class AIServiceTests: XCTestCase {
             providerProfileID: "mock-openai"
         )
 
-        let manifest = ContextManifest(
-            documentID: "doc_norm",
-            documentRevision: 1,
-            operationKind: "ask",
-            providerSnapshot: mockProvider.snapshot
-        )
+        await metadataEngine.saveDocument(Document(id: request.documentID, title: "Fixture", sourceHash: "fixture", revision: request.documentRevision, localFileRef: "fixture.pdf", pageCount: 2, importState: .readable))
+        let context = ContextAggregator().buildContext(request: request, providerSnapshot: mockProvider.snapshot, document: nil, pageTexts: [0: "Fixture document content"])
 
-        let stream = try await aiService.generateStream(request: request, manifest: manifest)
+        let stream = try await aiService.generateStream(request: request, context: context)
 
         var receivedDeltas: [String] = []
         for try await chunk in stream {
@@ -379,7 +375,7 @@ final class AIServiceTests: XCTestCase {
 
         // 2. 禁止同一 attempt 重复进入
         do {
-            _ = try await aiService.generateStream(request: request, manifest: manifest)
+            _ = try await aiService.generateStream(request: request, context: context)
             XCTFail("Duplicate generateStream on completed attempt must throw")
         } catch let LLMProviderError.invalidResponse(msg) {
             XCTAssertTrue(msg.contains("completed") && msg.contains("禁止重复执行"))
@@ -406,14 +402,10 @@ final class AIServiceTests: XCTestCase {
             providerProfileID: "mock-openai"
         )
 
-        let manifest = ContextManifest(
-            documentID: "doc_fail",
-            documentRevision: 1,
-            operationKind: "ask",
-            providerSnapshot: mockProvider.snapshot
-        )
+        await metadataEngine.saveDocument(Document(id: request.documentID, title: "Fixture", sourceHash: "fixture", revision: request.documentRevision, localFileRef: "fixture.pdf", pageCount: 2, importState: .readable))
+        let context = ContextAggregator().buildContext(request: request, providerSnapshot: mockProvider.snapshot, document: nil, pageTexts: [0: "Fixture document content"])
 
-        let stream = try await aiService.generateStream(request: request, manifest: manifest)
+        let stream = try await aiService.generateStream(request: request, context: context)
 
         var caughtError: Error?
         do {
@@ -441,7 +433,7 @@ final class AIServiceTests: XCTestCase {
 
         // 验证内部记录的终态仍为 failed
         do {
-            _ = try await aiService.generateStream(request: request, manifest: manifest)
+            _ = try await aiService.generateStream(request: request, context: context)
             XCTFail("Duplicate generateStream on failed attempt must throw")
         } catch let LLMProviderError.invalidResponse(msg) {
             XCTAssertTrue(msg.contains("failed") && msg.contains("禁止重复执行"))
@@ -481,15 +473,11 @@ final class AIServiceTests: XCTestCase {
             providerProfileID: "mock-openai"
         )
 
-        let manifest = ContextManifest(
-            documentID: "doc_cancel",
-            documentRevision: 1,
-            operationKind: "ask",
-            providerSnapshot: mockProvider.snapshot
-        )
+        await metadataEngine.saveDocument(Document(id: request.documentID, title: "Fixture", sourceHash: "fixture", revision: request.documentRevision, localFileRef: "fixture.pdf", pageCount: 2, importState: .readable))
+        let context = ContextAggregator().buildContext(request: request, providerSnapshot: mockProvider.snapshot, document: nil, pageTexts: [0: "Fixture document content"])
 
         let service = self.aiService!
-        let stream = try await service.generateStream(request: request, manifest: manifest)
+        let stream = try await service.generateStream(request: request, context: context)
 
         // 异步等待流首包吐字后主动触发取消
         let cancelTask = Task { () -> (Bool, Bool) in
@@ -521,7 +509,7 @@ final class AIServiceTests: XCTestCase {
 
         // 终态验证：已 cancelled 的 attempt 再次触发必须抛出已进入终态 (cancelled)
         do {
-            _ = try await aiService.generateStream(request: request, manifest: manifest)
+            _ = try await aiService.generateStream(request: request, context: context)
             XCTFail("Duplicate generateStream on cancelled attempt must throw")
         } catch let LLMProviderError.invalidResponse(msg) {
             XCTAssertTrue(msg.contains("cancelled") && msg.contains("禁止重复执行"))
@@ -559,17 +547,13 @@ final class AIServiceTests: XCTestCase {
             providerProfileID: "mock-openai"
         )
 
-        let manifest = ContextManifest(
-            documentID: "doc_tc",
-            documentRevision: 1,
-            operationKind: "ask",
-            providerSnapshot: mockProvider.snapshot
-        )
+        await metadataEngine.saveDocument(Document(id: request.documentID, title: "Fixture", sourceHash: "fixture", revision: request.documentRevision, localFileRef: "fixture.pdf", pageCount: 2, importState: .readable))
+        let context = ContextAggregator().buildContext(request: request, providerSnapshot: mockProvider.snapshot, document: nil, pageTexts: [0: "Fixture document content"])
 
         let service = self.aiService!
         let consumerTask = Task<Error?, Never> {
             do {
-                let stream = try await service.generateStream(request: request, manifest: manifest)
+                let stream = try await service.generateStream(request: request, context: context)
                 for try await _ in stream {
                     // 读取首包后外部将取消
                     try Task.checkCancellation()
@@ -621,18 +605,14 @@ final class AIServiceTests: XCTestCase {
             providerProfileID: "mock-openai"
         )
 
-        let manifest = ContextManifest(
-            documentID: "doc_dup",
-            documentRevision: 1,
-            operationKind: "ask",
-            providerSnapshot: mockProvider.snapshot
-        )
+        await metadataEngine.saveDocument(Document(id: request.documentID, title: "Fixture", sourceHash: "fixture", revision: request.documentRevision, localFileRef: "fixture.pdf", pageCount: 2, importState: .readable))
+        let context = ContextAggregator().buildContext(request: request, providerSnapshot: mockProvider.snapshot, document: nil, pageTexts: [0: "Fixture document content"])
 
-        let _ = try await aiService.generateStream(request: request, manifest: manifest)
+        let _ = try await aiService.generateStream(request: request, context: context)
 
         // 在同一 attempt 仍在运行中时再次发起
         do {
-            _ = try await aiService.generateStream(request: request, manifest: manifest)
+            _ = try await aiService.generateStream(request: request, context: context)
             XCTFail("Duplicate generateStream on running attempt must throw")
         } catch let LLMProviderError.invalidResponse(msg) {
             XCTAssertTrue(msg.contains("正在运行中"))

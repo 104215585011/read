@@ -2,6 +2,10 @@ import Foundation
 import SwiftUI
 import Combine
 
+#if canImport(PDFKit)
+import PDFKit
+#endif
+
 /// 自由问答或助学消息领域模型
 public struct AIMessageItem: Identifiable, Sendable {
     public let id: String
@@ -155,6 +159,68 @@ public final class ReaderViewModel: ObservableObject {
     
     // MARK: - AI 真实流式助学与问答 (M2-UI 规范落地)
     
+    /// 依据物理页码尝试从 PDFKit 渲染树或本地源文件提取实际页面文本
+    public func extractPageText(pageIndex0: Int) -> String? {
+        guard pageIndex0 >= 0 && pageIndex0 < document.pageCount else { return nil }
+        #if canImport(PDFKit)
+        if let pdfView = adapter.pdfView,
+           let doc = pdfView.document,
+           pageIndex0 < doc.pageCount,
+           let page = doc.page(at: pageIndex0),
+           let str = page.string, !str.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return str
+        }
+        let path = document.localFileRef
+        if !path.isEmpty {
+            let fileURL: URL
+            if let parsedURL = URL(string: path), parsedURL.scheme != nil {
+                fileURL = parsedURL
+            } else {
+                fileURL = URL(fileURLWithPath: path)
+            }
+            if let doc = PDFDocument(url: fileURL),
+               pageIndex0 < doc.pageCount,
+               let page = doc.page(at: pageIndex0),
+               let str = page.string, !str.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return str
+            }
+        }
+        #endif
+        return nil
+    }
+
+    /// 依据目标学习范围搜集真实的物理页面文本
+    public func collectPageTexts(for scope: AIScope) -> [Int: String] {
+        var result: [Int: String] = [:]
+        switch scope {
+        case .selection(let anchor):
+            if let text = extractPageText(pageIndex0: anchor.pageIndex0) {
+                result[anchor.pageIndex0] = text
+            }
+        case .page(let page0):
+            if let text = extractPageText(pageIndex0: page0) {
+                result[page0] = text
+            }
+        case .chapter(_, let startPage, let endPage):
+            let validStart = max(0, startPage)
+            let validEnd = min(document.pageCount - 1, endPage)
+            if validStart <= validEnd {
+                for p in validStart...validEnd {
+                    if let text = extractPageText(pageIndex0: p) {
+                        result[p] = text
+                    }
+                }
+            }
+        case .document:
+            for p in 0..<document.pageCount {
+                if let text = extractPageText(pageIndex0: p) {
+                    result[p] = text
+                }
+            }
+        }
+        return result
+    }
+    
     /// 请求选区解释
     public func requestAIExplanation(for anchor: SourceAnchor) {
         selectionAnchor = nil
@@ -188,6 +254,14 @@ public final class ReaderViewModel: ObservableObject {
         let attID = UUID().uuidString
         self.activeRequestID = reqID
         self.activeAttemptID = attID
+        
+        // 0. 捕获已有历史对话（在追加本次新问答之前）
+        let history: [LLMMessage] = messages.filter { !$0.isPartial && !$0.text.isEmpty }.map { msg in
+            LLMMessage(
+                role: msg.isUser ? .user : .assistant,
+                content: msg.text
+            )
+        }
         
         // 1. 追加用户消息
         let userMsg = AIMessageItem(isUser: true, text: text)
@@ -234,10 +308,13 @@ public final class ReaderViewModel: ObservableObject {
             model: "gpt-4o-mini"
         )
         let aggregator = ContextAggregator()
+        let pageTexts = collectPageTexts(for: scopeToUse)
         let aggregated = aggregator.buildContext(
             request: request,
             providerSnapshot: providerSnapshot,
-            document: document
+            document: document,
+            pageTexts: pageTexts,
+            conversationHistory: history
         )
         self.activeManifest = aggregated.manifest
         
@@ -248,7 +325,7 @@ public final class ReaderViewModel: ObservableObject {
             do {
                 let stream = try await self.coreService.aiService.generateStream(
                     request: request,
-                    manifest: aggregated.manifest
+                    context: aggregated
                 )
                 
                 var accumulatedText = ""
@@ -309,6 +386,9 @@ public final class ReaderViewModel: ObservableObject {
                 // 主动取消：严格置为 .cancelled 终态，与 .failed 互斥
                 guard self.activeAttemptID == attID else { return }
                 self.markGenerationCancelled(msgID: aiMsgID)
+            } catch let error as LLMProviderError where error == .cancelled {
+                guard self.activeAttemptID == attID else { return }
+                self.markGenerationCancelled(msgID: aiMsgID)
             } catch {
                 // 异常处理：严格置为 .failed 终态，与 .cancelled 互斥
                 guard self.activeAttemptID == attID else { return }
@@ -352,10 +432,12 @@ public final class ReaderViewModel: ObservableObject {
             model: "gpt-4o-mini"
         )
         let aggregator = ContextAggregator()
+        let pageTexts = collectPageTexts(for: scope)
         let aggregated = aggregator.buildContext(
             request: request,
             providerSnapshot: providerSnapshot,
-            document: document
+            document: document,
+            pageTexts: pageTexts
         )
         self.activeManifest = aggregated.manifest
         
@@ -373,7 +455,7 @@ public final class ReaderViewModel: ObservableObject {
             do {
                 let stream = try await self.coreService.aiService.generateStream(
                     request: request,
-                    manifest: aggregated.manifest
+                    context: aggregated
                 )
                 
                 var accumulated = ""
@@ -399,14 +481,23 @@ public final class ReaderViewModel: ObservableObject {
                 self.currentAIResult = guideResult
                 self.isAIGenerating = false
                 self.displayToast("导学生成已取消")
+            } catch let error as LLMProviderError where error == .cancelled {
+                guard self.activeAttemptID == attID else { return }
+                self.currentAIStatus = .cancelled
+                guideResult.status = .cancelled
+                self.currentAIResult = guideResult
+                self.isAIGenerating = false
+                self.displayToast("导学生成已取消")
             } catch {
                 guard self.activeAttemptID == attID else { return }
                 if self.currentAIStatus != .cancelled {
                     self.currentAIStatus = .failed
-                    self.currentErrorMessage = error.localizedDescription
+                    let errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                    self.currentErrorMessage = errorText
                     guideResult.status = .failed
                     self.currentAIResult = guideResult
                     self.isAIGenerating = false
+                    self.displayToast("导学生成失败: \(errorText)")
                 }
             }
         }
@@ -480,11 +571,12 @@ public final class ReaderViewModel: ObservableObject {
     
     private func markGenerationFailed(msgID: String, error: Error) {
         currentAIStatus = .failed
-        currentErrorMessage = error.localizedDescription
+        let errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        currentErrorMessage = errorText
         isAIGenerating = false
         if let idx = messages.firstIndex(where: { $0.id == msgID }) {
             let item = messages[idx]
-            let updatedText = item.text.isEmpty ? "生成失败: \(error.localizedDescription)" : "\(item.text)\n\n[⚠️ 生成中断: \(error.localizedDescription)]"
+            let updatedText = item.text.isEmpty ? "生成失败: \(errorText)" : "\(item.text)\n\n[⚠️ 生成中断: \(errorText)]"
             messages[idx] = AIMessageItem(
                 id: item.id,
                 isUser: false,
@@ -494,7 +586,7 @@ public final class ReaderViewModel: ObservableObject {
                 isPartial: false
             )
         }
-        displayToast("AI 生成失败: \(error.localizedDescription)")
+        displayToast("AI 生成失败: \(errorText)")
     }
     
     public func cancelAIGeneration() {
