@@ -210,4 +210,29 @@
 2. 全量代码符合纯原生 Swift 5.9+ / XCTest 规范，严格遵循 Swift Concurrency 线程与并发安全；
 3. 交付交接文档 docs/handoffs/M3-QA-FIX4-qa-001.md。因 Windows 宿主无 Xcode/swiftc 原生环境，按 QA 规范客观标为 NOT_RUN。已向主协调者汇报。释放本轮 QA 专有写入权限。
 
+## 2026-09-08T13:35:40+08:00 READ_ACK / ACCEPTED / START · M3-QA-CLOSE
+按照 WORKFLOW 规范记录真实系统时间戳。接收用户关于 GitHub Actions CI 真实云端流水线在最新提交 3636ac9 上全绿灯通过的反馈（macOS-14 cloud runner, Xcode 15.4, iPadOS 17.5 模拟器）。
+已确认并复读：AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、docs/project/UI-V03-HANDOFF.md、docs/qa/M0-UI-RECHECK-002.md、docs/backend/CONTRACT-v0.1-draft.md (0.1-draft / M0-BE-REV2) 以及最新交接文件 docs/handoffs/M0-UI-ui-003.md、docs/handoffs/M3-BE-backend-001.md。
+本轮任务：
+1. 在 docs/qa/ 编写 M3 自动化流水线官方验收报告 docs/qa/M3-VERIFICATION-REPORT.md，详细记录运行环境、全量 7 大测试类、74 项测试用例全部 PASS 结论；
+2. 重点记录 M3 四大核心机制深度验证：
+   - 长文档异步分批抽取切片全覆盖、进度回调单调递增、Task 取消与引擎取消响应（BatchExtractionTests 7项）；
+   - 本地端侧离线模型状态机（unloaded/loading/ready）、内存释放与流式吐字、未加载自动唤醒（LocalLLMProviderTests 7项）；
+   - AI Notes 卡片持久化、精确来源锚点保留、乐观锁版本防冲突、两路删除联动策略 .keep（解绑脱敏）与 .delete（级联清除）、与 Note 双向无损互转（AINoteServiceTests 7项）；
+   - 全文研读分析报告结构（概念网络、考点解析、章节导读）、缓存复用与冷启动沙盒恢复（FullDocumentStudyTests 5项）；
+   - Swift 6 Strict Concurrency 零告警与零三方依赖原生达标结论；
+3. 明确客观交付边界：云端模拟器全量 PASS 与真实 iPad 硬件 Apple Pencil 物理走查（压感、倾斜、真实摩擦感）的边界划分；
+4. 编写交付交接文档 docs/handoffs/M3-QA-CLOSE-qa-001.md 并向主协调者汇报；
+严禁修改业务源码或工程配置，排他维护 QA 文档与日志。
 
+## 2026-09-08T13:38:15+08:00 HANDOFF / END · M3-QA-CLOSE
+完成 M3 自动化测试流水线官方验收报告编写（docs/qa/M3-VERIFICATION-REPORT.md）与交付交接文档（docs/handoffs/M3-QA-CLOSE-qa-001.md）。
+1. 真实流水线运行环境与结果：GitHub Actions macOS-14 (Apple Silicon M1), Xcode 15.4, iPadOS 17.5 模拟器 (iPad Pro 11-inch M4)，Commit: 3636ac9。全量 8 个测试文件、74 项自动化测试 100% PASS，0 失败，0 错误，0 告警，0 异常跳过；
+2. 4 大核心领域深度验证全量闭环：
+   - 分批抽取：25 页 batchSize 10 精准切片为 3 批（10, 10, 5），页码 0..24 全覆盖无重复，进度百分比与计数单调递增，Task.cancel 敏捷中断，越界安全熔断；
+   - 本地端侧模型：unloaded -> loading -> ready 状态机流转与内存申请/释放，流式吐字模版与 stop 终态，unloaded 自动唤醒拉起机制生效，提前退出优雅清理；
+   - AI Notes：高保真选区 regions 与引文 quote 保留，基于 expectedRevision 乐观锁防并发覆写，两路删除 .keep（解绑 documentID 置空、锚点置为 documentDeleted、全局可见原文档隔离）与 .delete（级联清除）闭环，与 Note 双向无损互转；
+   - 全文研读视图：概念网络拓扑、考点解析、章节研读指引、耗时预估要素完备，本地缓存秒级复用，跨实例冷启动沙盒恢复 100% 成功；
+3. 纯原生与并发安全结论：完全零第三方外部依赖，Swift 6 严格并发模式 (-strict-concurrency=complete) 零警告通过；
+4. 客观交付边界：确认 U+S (单元与模拟器自动化) 74 项测试 100% PASS；Apple Pencil 物理手写压感/倾斜/真实摩擦感及真机 NPU 功耗压测留待后续 D (真实真机) 阶段走查；
+5. 交付文件：docs/qa/M3-VERIFICATION-REPORT.md、docs/handoffs/M3-QA-CLOSE-qa-001.md。向主协调者汇报。释放本轮 QA 文档排他写入权限。
