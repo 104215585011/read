@@ -448,7 +448,8 @@ final class LocalLLMProviderTests: XCTestCase {
     func testLocalLLMProviderAutoReloadWhenStreamingWhileUnloaded() async throws {
         let provider = LocalMockLLMProvider()
         await provider.unloadModel()
-        XCTAssertFalse(await provider.isReady())
+        let isReadyBefore = await provider.isReady()
+        XCTAssertFalse(isReadyBefore)
 
         // 在 unloaded 状态下直接发起推理
         let stream = try await provider.streamCompletion(
@@ -462,7 +463,8 @@ final class LocalLLMProviderTests: XCTestCase {
         }
 
         XCTAssertFalse(text.isEmpty)
-        XCTAssertTrue(await provider.isReady(), "流式推理发起后应自动将模型拉回 ready 状态")
+        let isReadyAfter = await provider.isReady()
+        XCTAssertTrue(isReadyAfter, "流式推理发起后应自动将模型拉回 ready 状态")
     }
 
     /// 测试端侧流式生成提前取消安全退出
@@ -484,7 +486,8 @@ final class LocalLLMProviderTests: XCTestCase {
 
         XCTAssertEqual(receivedChunks, 2)
         // 验证系统在中断后仍处于良好状态
-        XCTAssertTrue(await provider.isReady())
+        let isReadyEnd = await provider.isReady()
+        XCTAssertTrue(isReadyEnd)
     }
 }
 
@@ -524,8 +527,8 @@ final class AINoteServiceTests: XCTestCase {
             pageIndex0: 15,
             paragraphID: "para_math_15_2",
             quote: "设函数 f 在区间 [a, b] 上连续且单调递增...",
-            rects: [CodableRect(x: 100, y: 200, width: 350, height: 45)],
-            precision: .exact,
+            regions: [CodableRect(x: 100, y: 200, width: 350, height: 45)],
+            precision: .region,
             availability: .active
         )
 
@@ -555,7 +558,7 @@ final class AINoteServiceTests: XCTestCase {
         XCTAssertEqual(createdCard.id, "card_math_001")
         XCTAssertEqual(createdCard.revision, 1)
 
-        // 查询并严格验证来源锚点保真度 (quote / pageIndex0 / rects / precision)
+        // 查询并严格验证来源锚点保真度 (quote / pageIndex0 / regions / precision)
         guard let fetched = try await service.getAINote(id: "card_math_001") else {
             XCTFail("未能按 ID 获取卡片笔记")
             return
@@ -571,10 +574,10 @@ final class AINoteServiceTests: XCTestCase {
         XCTAssertEqual(fetchedAnchor.pageIndex0, 15)
         XCTAssertEqual(fetchedAnchor.paragraphID, "para_math_15_2")
         XCTAssertEqual(fetchedAnchor.quote, "设函数 f 在区间 [a, b] 上连续且单调递增...")
-        XCTAssertEqual(fetchedAnchor.precision, .exact)
+        XCTAssertEqual(fetchedAnchor.precision, .region)
         XCTAssertEqual(fetchedAnchor.availability, .active)
-        XCTAssertEqual(fetchedAnchor.rects.count, 1)
-        XCTAssertEqual(fetchedAnchor.rects[0], CodableRect(x: 100, y: 200, width: 350, height: 45))
+        XCTAssertEqual(fetchedAnchor.regions.count, 1)
+        XCTAssertEqual(fetchedAnchor.regions[0], CodableRect(x: 100, y: 200, width: 350, height: 45))
     }
 
     /// 测试 AI Notes 乐观锁更新：版本匹配时递增，过期版本抛出 conflict
@@ -671,9 +674,10 @@ final class AINoteServiceTests: XCTestCase {
         let docID = "doc_to_be_deleted_keep"
         let anchor = SourceAnchor(
             documentID: docID,
+            documentRevision: 1,
             pageIndex0: 3,
             quote: "重要推论内容",
-            precision: .exact,
+            precision: .region,
             availability: .active
         )
         let card = AINoteCard(
@@ -742,7 +746,7 @@ final class AINoteServiceTests: XCTestCase {
     func testAINoteToNoteAndFromNoteBidirectionalConversion() {
         let snapshot = AINoteSourceSnapshot(
             documentID: "doc_conv_01",
-            sourceAnchors: [SourceAnchor(documentID: "doc_conv_01", pageIndex0: 2)],
+            sourceAnchors: [SourceAnchor(documentID: "doc_conv_01", documentRevision: 1, pageIndex0: 2)],
             originKind: .document,
             aiOrigin: AIOrigin(
                 requestID: "local-mock",

@@ -175,4 +175,24 @@
 3. 全面核查确认无多余参数或形参不匹配，纯原生 Swift 实现且符合 Swift 5.10 / Swift 6 Strict Concurrency 严格并发安全标准；
 4. 交付交接文档 docs/handoffs/M3-QA-FIX2-qa-001.md。当前环境标为 NOT_RUN。已向主协调者汇报。释放本轮 QA 专有写入权限。
 
+## 2026-09-08T11:28:00+08:00 READ_ACK / ACCEPTED / START · M3-QA-FIX3
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收主协调者修复 StudyOSTests/M3BackendTests.swift 编译错误的指令。
+已读取并确认：AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、SourceAnchor.swift 及 M3BackendTests.swift。
+本轮任务：
+1. 修复 XCTest 同步 autoclosure 宏内 await provider.isReady() 错误（行 451, 465, 487），提前 await 至局部变量再传入断言；
+2. 修复 SourceAnchor 属性与精度参数（行 527, 528, 574, 576, 577）：将 rects 修改为 regions，将 .exact 修改为 .region；
+3. 修复 SourceAnchor 缺失 documentRevision: 1 及非法枚举 .exact（行 673, 676）；
+4. 修复 SourceAnchor 缺失 documentRevision: 1（行 745）；
+5. 保证代码纯原生 Swift 5.9+ / XCTest，严格遵守 Strict Concurrency 安全；
+## 2026-09-08T11:29:30+08:00 HANDOFF / END · M3-QA-FIX3
+完成 StudyOSTests/M3BackendTests.swift 编译错误精准修复与规范对齐：
+1. 错误 1（async in autoclosure，行 451, 465, 487）：提前在 async 上下文执行 await provider.isReady() 提取局部变量（isReadyBefore, isReadyAfter, isReadyEnd），消除 XCTestCase 同步 autoclosure 闭包并发错误；
+2. 错误 2（SourceAnchor 属性与精度参数，行 527, 528, 574, 576, 577）：精准适配 SourceAnchor 模型定义，将 rects 修改为 regions，将不存在的 .exact 修正为 .region，断言同步更新为 fetchedAnchor.regions 与 .region；
+3. 错误 3（SourceAnchor 缺少必填参数与非法枚举，行 674, 678）：补齐必填参数 documentRevision: 1，将 .exact 修正为 .region；
+4. 错误 4（SourceAnchor 缺少必填参数，行 749）：补齐必填参数 documentRevision: 1；
+5. 全量代码符合纯原生 Swift 5.9+ / XCTest 规范，严格遵循 Swift Concurrency 线程与并发安全；
+6. 交付交接文档 docs/handoffs/M3-QA-FIX3-qa-001.md。因 Windows 宿主无 Xcode/swiftc 原生环境，按 QA 规范客观标为 NOT_RUN。已向主协调者汇报。释放本轮 QA 专有写入权限。
+
+
+
 
