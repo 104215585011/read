@@ -26,14 +26,17 @@ echo "==> 调整 Xcode 工程兼容性格式为 Xcode 15 (objectVersion = 56)...
 sed -i '' 's/objectVersion = [0-9]*/objectVersion = 56/g' StudyOS.xcodeproj/project.pbxproj
 sed -i '' 's/compatibilityVersion = "Xcode [^"]*"/compatibilityVersion = "Xcode 14.0"/g' StudyOS.xcodeproj/project.pbxproj
 
-# 3. 编译真机 Release 版本
-echo "==> [3/5] 正在编译真机 Release 二进制目标 (iphoneos arm64)..."
-xcodebuild build \
+# 3. 编译真机 Release 归档，使用 .xcarchive 中的标准 App Bundle 作为 IPA 来源
+echo "==> [3/5] 正在归档真机 Release 二进制目标 (iphoneos arm64)..."
+rm -rf build/StudyOS.xcarchive
+xcodebuild archive \
   -project StudyOS.xcodeproj \
   -scheme StudyOS \
   -sdk iphoneos \
   -configuration Release \
   -destination "generic/platform=iOS" \
+  -archivePath "./build/StudyOS.xcarchive" \
+  SKIP_INSTALL=NO \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGN_IDENTITY="" \
@@ -44,7 +47,9 @@ echo "==> [4/5] 正在构建 Payload 目录并打包 IPA..."
 rm -rf Payload StudyOS.ipa
 mkdir -p Payload
 
-if [ -d "build/Release-iphoneos/StudyOS.app" ]; then
+if [ -d "build/StudyOS.xcarchive/Products/Applications/StudyOS.app" ]; then
+    APP_BUNDLE_PATH="build/StudyOS.xcarchive/Products/Applications/StudyOS.app"
+elif [ -d "build/Release-iphoneos/StudyOS.app" ]; then
     APP_BUNDLE_PATH="build/Release-iphoneos/StudyOS.app"
 else
     APP_BUNDLE_PATH=$(find build -name "StudyOS.app" -type d | grep -v "\.build" | head -n 1)
@@ -56,6 +61,8 @@ if [ -z "$APP_BUNDLE_PATH" ] || [ ! -d "$APP_BUNDLE_PATH" ]; then
 fi
 
 echo "找到构建产物 App Bundle: $APP_BUNDLE_PATH"
+echo "==> 归档目录结构："
+find build/StudyOS.xcarchive -maxdepth 4 -print 2>/dev/null || true
 cp -r "$APP_BUNDLE_PATH" Payload/
 
 # 强制写入安装器要求的真实 Bundle 元数据，避免 Xcode 模板变量进入 IPA
@@ -125,6 +132,7 @@ chmod +x Payload/StudyOS.app/StudyOS
 rm -rf Payload/StudyOS.app/_CodeSignature
 /usr/bin/codesign --force --sign - --timestamp=none Payload/StudyOS.app
 /usr/bin/codesign --verify --deep --strict --verbose=2 Payload/StudyOS.app
+/usr/bin/codesign -dv --verbose=4 Payload/StudyOS.app 2>&1 || true
 
 if [ ! -f "Payload/StudyOS.app/_CodeSignature/CodeResources" ]; then
     echo "错误：签名后仍缺少 _CodeSignature/CodeResources，拒绝生成无效 IPA。"
