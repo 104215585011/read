@@ -79,3 +79,15 @@ jobs:
           name: iPad-Test-Results
           path: TestResults.xcresult
           retention-days: 7
+
+      - name: 打包 StudyOS.ipa 真机安装包
+        run: |
+          chmod +x Scripts/package_ipa.sh
+          bash Scripts/package_ipa.sh
+
+      - name: 上传 StudyOS.ipa 安装包 (供 iPad 侧载实测)
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudyOS-iPad-Release-IPA
+          path: StudyOS.ipa
+          retention-days: 14
