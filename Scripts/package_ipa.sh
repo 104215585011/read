@@ -121,6 +121,16 @@ if [ ! -f "Payload/StudyOS.app/StudyOS" ]; then
 fi
 chmod +x Payload/StudyOS.app/StudyOS
 
+# 写入 ad-hoc 代码签名骨架，便于 Sideloadly/installd 识别为完整 iOS App Bundle
+rm -rf Payload/StudyOS.app/_CodeSignature
+/usr/bin/codesign --force --sign - --timestamp=none Payload/StudyOS.app
+/usr/bin/codesign --verify --deep --strict --verbose=2 Payload/StudyOS.app
+
+if [ ! -f "Payload/StudyOS.app/_CodeSignature/CodeResources" ]; then
+    echo "错误：签名后仍缺少 _CodeSignature/CodeResources，拒绝生成无效 IPA。"
+    exit 1
+fi
+
 # 打印 App Bundle 详细结构以便验证
 echo "==> Payload/StudyOS.app 文件清单："
 ls -la Payload/StudyOS.app
@@ -145,6 +155,11 @@ fi
 
 if [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' /tmp/studyos-ipa-info.plist)" != "com.studyos.app" ]; then
     echo "错误：IPA 内部 CFBundleIdentifier 不正确。"
+    exit 1
+fi
+
+if ! unzip -l StudyOS.ipa Payload/StudyOS.app/_CodeSignature/CodeResources | grep -q "_CodeSignature/CodeResources"; then
+    echo "错误：IPA 内部缺少 _CodeSignature/CodeResources。"
     exit 1
 fi
 
