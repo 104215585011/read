@@ -1,6 +1,6 @@
 # StudyOS 项目看板
 
-更新：2026-09-08T13:41:27+08:00。M0/M1/M2/M3 阶段均已全量验收收口完成（DONE）；用户已正式下达推进指令开启 M4-RELEASE 阶段（实体硬件走查准备、Pencil 硬件手势增强、真机走查规程与发布就绪交付）。M4-RELEASE 整体状态更新为 IN_PROGRESS；M4-BE 置为 IN_PROGRESS 并正式授权 Codex1 启动实施，M4-UI 与 M4-QA 置为 READY 待命；平台为 iPad 原生。
+更新：2026-09-08T14:05:30+08:00。M0/M1/M2/M3/M4-RELEASE 全阶段全量验收收口完成（DONE）；全案里程碑 100% 达成！GitHub Actions CI 真实云端流水线在 Commit bf131d6 上全部 9 大测试文件、106 项自动化测试 100% 通过（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器，0 失败，0 告警，0 异常跳过）；主任务表 M4-RELEASE、M4-BE、M4-UI、M4-QA 全量更新为 DONE；真机 Apple Pencil 物理走查规程指南《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`）正式就绪发布；平台为 iPad 原生，发布就绪（Release Ready）。
 
 | 任务 | 负责人 | 依赖 | 排他可写路径 | 验收条件 | 状态 |
 |---|---|---|---|---|---|
@@ -18,12 +18,12 @@
 | M3-BE 离线 Provider 与分批抽取引擎 | 项目后端 Codex1 | M2 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`Package.swift`、`docs/backend/**`、`docs/logs/backend.md` | 长文档异步分批抽取引擎（落实 R10 P0 后端支撑）、端侧离线 LLM Provider 抽象协议与调度器、R11 AI Notes 数据模型与持久化服务 | DONE |
 | M3-UI 全屏全文学习视图与离线设置界面 | UI 总监 Claude2 | M3-BE 接口草案与模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | R10 全屏全文学习视图、概念/考点脑图结构卡片、AI 助学笔记卡片沉淀、Provider 切换与离线设置界面 | DONE |
 | M3-QA 离线套件与分批抽取验证 | 项目测试 Codex2 | M3-BE / M3-UI 交付物 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 8 大测试类 74 项自动化测试（涵盖 26 项 M3 专项测试），云端 CI (macOS-14 / iPadOS 17.5) 74/74 100% PASS，验收报告落盘 | DONE |
-| M4-RELEASE 实体硬件走查准备与发布就绪 | Codex1 + Claude2 + Codex2 | M3 收口 | 模块排他目录（见 M4 规划） | 实体硬件走查准备、CoreML/沙盒/重试策略升级、Pencil 硬件手势支持与主题打磨、物理走查规程手册就绪、发布交付就绪 | IN_PROGRESS |
-| M4-BE 端侧模型调度升级与沙盒/重试策略 | 项目后端 Codex1 | M3 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`Package.swift`、`docs/backend/**`、`docs/logs/backend.md` | 端侧 CoreML / 本地模型加载调度契约升级、离线资源沙盒管理、弱网断线自动重试与恢复策略 | IN_PROGRESS |
-| M4-UI 硬件手势支持、底色主题与视口打磨 | UI 总监 Claude2 | M4-BE 接口与契约协议 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | Apple Pencil 硬件手势支持（PencilInteraction 双击切换橡皮/笔、笔尖悬停 Hover 预测发光环）、深浅阅读底色/纸张主题切换、真机 UI 视口打磨 | READY |
-| M4-QA 物理走查手册与发布验证矩阵 | 项目测试 Codex2 | M4-BE / M4-UI 交付物与走查规程 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 编写《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`），覆盖压感/倾斜/延迟/防误触/手势切换/离线长文档分批等 10 大物理检验流 | READY |
+| M4-RELEASE 实体硬件走查准备与发布就绪 | Codex1 + Claude2 + Codex2 | M3 收口 | 模块排他目录（见 M4 规划） | 实体硬件走查准备、CoreML/沙盒/重试策略升级、Pencil 硬件手势支持与主题打磨、物理走查规程手册就绪、发布交付就绪 | DONE |
+| M4-BE 端侧模型调度升级与沙盒/重试策略 | 项目后端 Codex1 | M3 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`Package.swift`、`docs/backend/**`、`docs/logs/backend.md` | 端侧 CoreML / 本地模型加载调度契约升级、离线资源沙盒管理、弱网断线自动重试与恢复策略 | DONE |
+| M4-UI 硬件手势支持、底色主题与视口打磨 | UI 总监 Claude2 | M4-BE 接口与契约协议 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | Apple Pencil 硬件手势支持（PencilInteraction 双击切换橡皮/笔、笔尖悬停 Hover 预测发光环）、深浅阅读底色/纸张主题切换、真机 UI 视口打磨 | DONE |
+| M4-QA 物理走查手册与发布验证矩阵 | 项目测试 Codex2 | M4-BE / M4-UI 交付物与走查规程 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 编写《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`），覆盖压感/倾斜/延迟/防误触/手势切换/离线长文档分批等 10 大物理检验流 | DONE |
 
-每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M0、M1-SETUP、M2、M3 已全量收口闭环（DONE）；M4-RELEASE 当前推进中（IN_PROGRESS）。
+每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M0、M1-SETUP、M2、M3、M4-RELEASE 全量收口闭环（DONE）。全案里程碑 100% 达成。
 
 
 
@@ -386,5 +386,71 @@ PM Claude1 完成 M4-RELEASE 任务拆解、排他目录划分与子任务授权
 1. **单一工程配置写者（Single Config Writer）**：Codex1 独占 `Package.swift` 及全局构建配置维护权；
 2. **排他目录隔离**：各角色严禁越权修改非排他目录或他人日志；
 3. **推进流转**：Codex1 完成 M4-BE 交付物后向 Claude2 和 Codex2 触发下游任务，QA 编写物理走查手册并执行发布就绪检验。
+
+## M4-RELEASE 收口与全案交付闭环记录
+
+2026-09-08T14:05:30+08:00：QA 负责人 Codex2 已正式提交 M4 官方验收报告（`docs/qa/M4-VERIFICATION-REPORT.md`）、真机走查规程手册（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`）及收口交接文档（`docs/handoffs/M4-QA-CLOSE-qa-001.md`）。
+确认 GitHub Actions CI 真实云端流水线在 Commit `bf131d6` 上全部 9 大测试文件、106 项自动化测试 100% 全部通过（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器，0 失败，0 错误，0 告警，0 跳过）。
+PM Claude1 审阅 QA 验收报告与交付物，确认需求基线（PRD R01–R17，重点 R03 批注、R12 网络弹性与高可用、R14 本地离线模型与沙盒管理及真机物理走查）全量闭环。PM 正式将 **M4-BE、M4-UI、M4-QA 以及整体 M4-RELEASE 状态更新为 DONE**！
+
+### 1. 云端 CI 真实验证执行环境与证据
+- **CI 运行器平台 (Runner)**：GitHub Actions `macos-14` (Apple Silicon M1 Runner)；
+- **构建工具链**：Xcode 15.4 (Build version 15F31d) / Apple Swift 5.10；
+- **目标模拟器**：iPadOS Simulator (iOS 17.5 / `iPad Pro 11-inch (M4)`)；
+- **构建与测试指令**：`xcodebuild test -scheme StudyOS -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M4),OS=17.5' -resultBundlePath TestResults.xcresult`；
+- **代码提交基线 (Commit)**：`bf131d6`；
+- **并发模式**：Swift 6 严格并发检查完整模式 (`-strict-concurrency=complete`)，零并发数据竞争告警；
+- **外部依赖**：**0**（纯原生 Apple Framework：Foundation, UIKit, PencilKit, PDFKit, CoreGraphics, CryptoKit, XCTest）；
+- **测试用例统计**：全量 9 大测试文件 **106 项自动化测试用例 100% 全部 PASS (106/106)**：
+  1. `M4BackendTests.swift` (32 项 PASS)：弱网弹性重试（指数退避/Jitter/瞬态与终态精确识别/Task取消）、离线沙盒资源管理（多分块并发存储/自动原子合并/CryptoKit SHA-256 二进制哈希防篡改/生命周期清理）、端侧模型动态调度（网络连通性感知/内存临界 OOM Jetsam 熔断/断网与超时无缝热降级管道）；
+  2. `M3BackendTests.swift` (26 项 PASS)：长文档分批抽取切片与取消、本地离线模型状态机与流式吐字、AI Notes 来源保真/乐观锁/两路删除/双向互转、全文研读分析报告生成与冷启动沙盒恢复；
+  3. `AIServiceTests.swift` (11 项 PASS)：五级上下文装配、状态机终态互斥（`failed` 与 `cancelled` 互斥）、`alreadyTerminal` 防御、流式吐字与主动取消；
+  4. `M2RegressionTests.swift` (8 项 PASS)：单页/跨页真实正文透传隔离、全量 CryptoKit SHA-256 摘要哈希、握手挂起前防并发重入、SSE 协议校验；
+  5. `ContractTests.swift` (8 项 PASS)：PageKey 哈希隔离、快照不可变固化、Receipt 版本递增、工具三态与错误契约；
+  6. `ReaderAdapterFlowTests.swift` (8 项 PASS)：跨会话核对、过期来源拦截、工具流转、导航越界保护、M4 契约属性扩展兼容性；
+  7. `ModelTests.swift` (6 项 PASS)：模型序列化与两路删除联动策略 (`keep` / `delete`)；
+  8. `StorageActorTests.swift` (4 项 PASS)：StorageActor 并发墨水写入隔离与版本单调递增；
+  9. `StudyOSTests.swift` (3 项 PASS)：基础冒烟断言。
+
+### 2. 全案里程碑（M0 -> M1-SETUP -> M2 -> M3 -> M4-RELEASE）达成总览
+
+| 里程碑编号 | 阶段名称 | 核心交付物与成果 | 自动化测试结果 | 状态 |
+|---|---|---|:---:|:---:|
+| **M0** | 架构与契约设计阶段 | PRD 映射、前后端 0.1-draft/M0-BE-REV2 契约规范、UI v0.3 规范、QA 验收准备 | N/A (纯规范) | **DONE** |
+| **M1-SETUP** | 原生工程脚手架与切片 | SwiftPM + iOS 17.0+ 原生脚手架、14 组领域模型、StorageActor、PencilKit 基础切片 | 26/26 PASS | **DONE** |
+| **M2** | 核心阅读流与 AI 交互联调 | PDF 异步大文件加载、不可变 AggregatedContext 强透传、CryptoKit SHA-256 全量哈希、流式终态互斥 | 47/47 PASS | **DONE** |
+| **M3** | 离线模型与长文档分批研读 | 长文档异步分批抽取引擎、本地端侧离线 Provider、AI Notes 卡片与两路删除联动、全文学习视图 | 74/74 PASS | **DONE** |
+| **M4-RELEASE** | 硬件走查准备与发布就绪 | 端侧模型调度与沙盒、弱网退避重试、Pencil 硬件双击手势、4 种护眼纸张主题、真机 10 大物理走查规程手册 | 106/106 PASS | **DONE** |
+
+**全案结论**：StudyOS 核心功能研发与全链路质量保证 **100% 达成**！
+
+### 3. 交付边界与现场物理走查交接 (Delivery Boundary & Hardware Walkthrough)
+依据严谨工程规范，项目在此明确区分已闭环的自动化流水线与后续现场真机物理走查的交付分界：
+
+```
+[自动化 CI 验证层 (U+S 层级)] (macOS-14 / Xcode 15.4 / iPadOS 17.5 模拟器)
+       │  106 项自动化测试用例 100% PASS (全链路业务、并发 Actor、流式管道、网络重试与离线沙盒)
+       │  Swift 6 并发安全无数据竞争、内存 Jetsam 防御、离线资源 SHA-256 防篡改校验
+       ▼
+   【M4-RELEASE 阶段收口判定：DONE (自动化流水线与代码工程全量闭环收口)】
+       │
+       │  交付边界交接点 (自动化测试闭环 ──▶ 现场实体硬件走查)
+       ▼
+[物理硬件走查层 (D 层级)] (依据《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》现场执行)
+       ├── 检验流 01：Apple Pencil 物理压感与线条动态响应 (Force & Dynamic Thickness)
+       ├── 检验流 02：Apple Pencil 笔锋物理倾斜角度走查 (Tilt Angle & Shading)
+       ├── 检验流 03：PencilKit 极低书写延迟与高刷采样 (ProMotion 120Hz & Latency ≤ 9ms)
+       ├── 检验流 04：手掌贴屏防误触走查 (Palm Rejection)
+       ├── 检验流 05：Apple Pencil 硬件手势流转 (Double-Tap & Hover 悬停预测发光环)
+       ├── 检验流 06：离线长文档分批抽取与内存峰值走查 (Memory & 60fps Scrolling)
+       ├── 检验流 07：本地端侧模型加载与长时功耗/发热走查 (NPU Thermal & Battery)
+       ├── 检验流 08：弱网断网与云端/本地 Provider 无缝热切换 (Offline Fallback)
+       ├── 检验流 09：深浅色与多种纸张背景主题无缝切换 (Paper Themes & Contrast)
+       └── 检验流 10：多窗口、分屏与横竖屏旋转自适应视口打磨 (Stage Manager & Split View)
+```
+
+- **规程手册交付**：Codex2 已交付《StudyOS iPad 真机与 Apple Pencil 物理走查规程手册》（`docs/qa/MANUAL-WALKTHROUGH-GUIDE.md`，文档编号：`M4-QA-MANUAL-001`，版本：`v1.0-release`），包含详尽前置条件、操作步骤、物理预期、量化通过准则、缺陷分级与通过性判定总则；
+- **现场走查执行**：产品体验团队与现场测试员可直接依据该规程手册在真实 iPad 硬件与 Apple Pencil 上进行物理走查与最终发布签发。
+
 
 
