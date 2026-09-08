@@ -149,14 +149,19 @@ public final class LocalSandboxManager: @unchecked Sendable {
         )
         let docsDict = [docID: sampleDoc]
         if let docsData = try? encoder.encode(docsDict) {
-            try? docsData.write(to: docsFileURL, options: .atomic)
+            try? docsData.write(to: docsFileURL, options: Data.WritingOptions.atomic)
         }
 
         // 2. 划线与考点批注 (Annotation)
         let sampleAnchor = SourceAnchor(
             documentID: docID,
+            documentRevision: 1,
             pageIndex0: 0,
-            precision: .text(exact: "特征值分解与奇异值分解（SVD）在低秩自注意力层中的降维应用", prefix: nil, suffix: nil)
+            regions: [CodableRect(x: 72, y: 150, width: 450, height: 36)],
+            paragraphID: "para_svd_intro",
+            quote: "特征值分解与奇异值分解（SVD）在低秩自注意力层中的降维应用",
+            precision: .region,
+            availability: .active
         )
         let sampleAnno = Annotation(
             id: "anno_seed_svd_attention",
@@ -168,7 +173,7 @@ public final class LocalSandboxManager: @unchecked Sendable {
         let annoFileURL = metadataFileURL(fileName: "annotations")
         let annosDict = [sampleAnno.id: sampleAnno]
         if let annoData = try? encoder.encode(annosDict) {
-            try? annoData.write(to: annoFileURL, options: .atomic)
+            try? annoData.write(to: annoFileURL, options: Data.WritingOptions.atomic)
         }
 
         // 3. 示例笔记 (Note)
@@ -176,7 +181,7 @@ public final class LocalSandboxManager: @unchecked Sendable {
             id: "note_seed_svd_dl",
             documentID: docID,
             chapterID: nil,
-            editableText: "【重点推导】SVD 与主成分分析（PCA）的对应关系：\\n1. 利用截断奇异值分解（Truncated SVD）将权重矩阵 W 逼近为低秩近似 W ≈ U_k * Σ_k * V_k^T；\\n2. 显著压缩 Transformer KV Cache 显存占用，同时保持注意力矩阵的谱范数上界与泛化能力。",
+            editableText: "【重点推导】SVD 与主成分分析（PCA）的对应关系：\n1. 利用截断奇异值分解（Truncated SVD）将权重矩阵 W 逼近为低秩近似 W ≈ U_k * Σ_k * V_k^T；\n2. 显著压缩 Transformer KV Cache 显存占用，同时保持注意力矩阵的谱范数上界与泛化能力。",
             imageRefs: [],
             sourceAnchors: [sampleAnchor],
             aiOrigin: AIOrigin(
@@ -190,7 +195,7 @@ public final class LocalSandboxManager: @unchecked Sendable {
         let notesFileURL = metadataFileURL(fileName: "notes")
         let notesDict = [sampleNote.id: sampleNote]
         if let notesData = try? encoder.encode(notesDict) {
-            try? notesData.write(to: notesFileURL, options: .atomic)
+            try? notesData.write(to: notesFileURL, options: Data.WritingOptions.atomic)
         }
 
         // 4. 阅读位置 (ReadingPosition)
@@ -204,7 +209,7 @@ public final class LocalSandboxManager: @unchecked Sendable {
         let posFileURL = metadataFileURL(fileName: "readingPositions")
         let posDict = [docID: samplePos]
         if let posData = try? encoder.encode(posDict) {
-            try? posData.write(to: posFileURL, options: .atomic)
+            try? posData.write(to: posFileURL, options: Data.WritingOptions.atomic)
         }
     }
 }
