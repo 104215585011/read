@@ -111,3 +111,26 @@
 
 ## 2026-09-08T08:33:43+08:00 READ_ACK / START · M2-RECHECK-QA
 读取AGENTS、QA职责、WORKFLOW、BOARD、PRD及7份M2交接（BE/FIX/FIX2/KICKOFF/QA/QA-FIX/UI）。当前HEAD 4f7b9a9，已有协调者日志修改不触碰。限定仅QA文档、本人日志及交接；不改代码，不声称Xcode运行。
+
+## 2026-09-08T09:15:10+08:00 READ_ACK / ACCEPTED / START · M2-QA-CLOSE
+按照 WORKFLOW 规范记录真实系统时间戳。接收用户关于 GitHub Actions CI 真实云端流水线在最新提交 c429470 上全量绿灯通过的反馈（macOS-14 cloud runner, Xcode 15.4, iPadOS 17.5 模拟器）。
+已确认并复读：AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、docs/project/M2-CLOSE-CHECKLIST.md、docs/backend/CONTRACT-v0.1-draft.md 以及最新的交接文件。
+本轮任务：
+1. 在 docs/qa/ 下编写 M2 自动化流水线验收报告 docs/qa/M2-VERIFICATION-REPORT.md，详细记录运行环境、全量 46 项（含 39+ 核心专项）测试 100% PASS 结果；
+2. 重点记录真实正文透传（AggregatedContext）、全量 CryptoKit SHA-256 哈希、流式终态互斥（failed 与 cancelled 互斥）、防重复运行、SSE 协议校验（合法、畸形、截断）等核心机制的验证结论；
+3. 客观区分云端模拟器通过与真机手写交互体验（D层）的边界；
+4. 编写交付文档 docs/handoffs/M2-QA-CLOSE-qa-001.md 并更新本日志，向主协调者汇报。
+严格遵守排他写入规则：仅修改 docs/qa/**、docs/logs/qa.md 与 docs/handoffs/M2-QA-*.md，严禁修改业务代码、工程配置或 PM/UI 专有文件。
+
+## 2026-09-08T09:16:30+08:00 HANDOFF / END · M2-QA-CLOSE
+完成 M2 自动化测试流水线验收报告编写（docs/qa/M2-VERIFICATION-REPORT.md）与交付交接文档（docs/handoffs/M2-QA-CLOSE-qa-001.md）。
+1. 真实流水线运行环境与结果：GitHub Actions macOS-14 (Apple Silicon M1), Xcode 15.4, iPadOS 17.5 模拟器 (iPad Pro 11-inch M4)，Commit: c429470。AIServiceTests（11项）、M2RegressionTests（8项）、ContractTests（8项）、ModelTests（6项）、StorageActorTests（4项）、ReaderAdapterFlowTests（8项）、StudyOSTests（2项冒烟），全量 47 个测试方法全部 100% PASS，0 失败，0 告警，0 异常跳过；
+2. 5大核心机制深度验证全量闭环：
+   - 真实正文透传（AggregatedContext）：单页 sentinel 正文透传通过、跨页章节起止边界包含通过、未勾选页严格物理隔离通过、无正文仅 Manifest 摘要重构拦截通过；
+   - 全量 CryptoKit SHA-256 摘要哈希：完整 UTF-8 数据字节哈希验证通过，单字符差异确定性雪崩，消除伪哈希碰撞；
+   - 流式终态互斥与 alreadyTerminal 防御：failed 与 cancelled 严格互斥、迟到 cancel 拦截、双路取消收敛、completed 终态保护通过；
+   - 握手前防重复运行：首个 await 前即完成 attempt 预占，并发重入直接拒绝并抛错通过；
+   - SSE 协议解析完备性：标准 delta 累加通过、畸形 JSON 块抛错（含带 [DONE]）通过、未终止截断流抛错通过；
+3. 明确客观边界：确认 U (单元) 与 S (模拟器自动化) 层级 100% PASS；Apple Pencil 物理手写压感/低延迟及真实生产外部网络联调仍待后续 D (真实真机) 阶段走查；
+4. 交付文件：docs/qa/M2-VERIFICATION-REPORT.md、docs/handoffs/M2-QA-CLOSE-qa-001.md。向主协调者汇报。释放本轮 QA 文档排他写入权限。
+

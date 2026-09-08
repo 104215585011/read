@@ -1,6 +1,6 @@
 # StudyOS 项目看板
 
-更新：2026-09-07T23:52:00+08:00。M0 文档阶段与 M1-SETUP 原生工程脚手架阶段均已收口完成（DONE）；GitHub Actions CI 真实云端环境（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器）全绿灯通过，26 项自动化测试套件 100% PASS（0 失败）；用户已下达推进指令，M2 阶段正式启动：M2-BE 置为 IN_PROGRESS 并授权 Codex1 启动核心服务实施，M2-UI 与 M2-QA 置为 READY；平台为 iPad 原生。
+更新：2026-09-08T09:16:30+08:00。M0 文档阶段、M1-SETUP 原生脚手架阶段及 M2 核心阅读流/批注笔迹持久化/AI 交互联调阶段均已收口完成（DONE）；GitHub Actions CI 真实云端环境（macOS-14 runner, Xcode 15.4, iPadOS 17.5 模拟器 `iPad Pro 11-inch (M4)`）在最新 Commit `c429470` 上 47 项自动化测试套件 100% 全部通过（47/47 PASS，0 失败，0 告警）；M2-BE、M2-UI、M2-QA 状态全部更新为 DONE；M3 规划（本地离线模型适配、长文档分批研读与真机手写走查）置为 READY；平台为 iPad 原生。
 
 | 任务 | 负责人 | 依赖 | 排他可写路径 | 验收条件 | 状态 |
 |---|---|---|---|---|---|
@@ -11,11 +11,12 @@
 | M0-UI-REVIEW 方案审阅与联调补充 | PM Claude1 / QA Codex2；主协调者临时收口 | M0-UI-ui-001 | docs/project/**、docs/qa/**、对应个人日志 | PM 一致性报告与 QA 独立审阅/联调用例落盘，状态真实 | DONE |
 | M0-BE-REV2 契约定向补充 | Codex1；QA复核；PM接收 | UI002复核 | docs/backend/**、backend日志；QA/PM各自范围 | 四组契约映射补齐并经QA设计复核 | DONE |
 | M1-SETUP 原生工程与阅读切片 | Codex1(工程/服务) + Claude2(UI/适配) + Codex2(测试套件) | M0 全部文档收口，真实 Mac 构建环境就绪 | 工程配置独占写者 Codex1；UI/服务/测试目录严格隔离 | CI 云端构建通过 (macOS-14 / Xcode 15.4 / iPadOS 17.5 模拟器)，26 项自动化单元测试全量 PASS，无编译错误与并发警告 | DONE |
-| M2-BE 核心服务与 Provider 基础设施 | 项目后端 Codex1 | M1-SETUP 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`docs/backend/**`、`docs/logs/backend.md` | 本地 LLM Provider 抽象（OpenAI/Anthropic 兼容流式客户端、SSE 解析、超时与取消、网络错误映射）、五级上下文动态清单聚合器（ContextAggregator）、真实 CryptoKit SHA-256 哈希、不可变 AggregatedContext 传递 | READY_FOR_QA |
-| M2-UI 交互流与 AI 呈现落地 | UI 总监 Claude2 / 主协调者临时迁移 | M2-BE 核心服务接口/数据模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | AI 侧栏流式打字机呈现与终态管理（failed/cancelled 互斥）、真实物理页文本提取与不可变 AggregatedContext 传递、选区浮动菜单与高亮落地、设置/API Key 配置面板 | READY_FOR_QA |
-| M2-QA 自动化测试与端到端验证 | 项目测试 Codex2 | M2-BE/UI 实施交付物 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | Provider 流式网络 Mock 测试、M2 回归用例（真实物理页正文传输、章节边界覆盖、SHA-256 全量哈希、请求握手防并发重入、SSE 协议校验）、云端 CI 39/39 测试通过 | WAITING_CI |
+| M2-BE 核心服务与 Provider 基础设施 | 项目后端 Codex1 | M1-SETUP 收口 | `StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`、`docs/backend/**`、`docs/logs/backend.md` | 本地 LLM Provider 抽象、SSE 流式客户端、五级上下文聚合、全量 CryptoKit SHA-256 哈希、不可变 AggregatedContext 强校验、握手防重入预占 | DONE |
+| M2-UI 交互流与 AI 呈现落地 | UI 总监 Claude2 / 主协调者临时迁移 | M2-BE 核心服务接口/数据模型 | `StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`、`docs/ui/**`、`docs/logs/ui.md` | AI 侧栏打字机动效、流式终态互斥（failed/cancelled）、真实物理页文本提取与不可变 AggregatedContext 强透传、选区浮动菜单、设置/API Key 面板 | DONE |
+| M2-QA 自动化测试与端到端验证 | 项目测试 Codex2 | M2-BE/UI 实施交付物 | `docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`、`docs/logs/qa.md` | 7 大测试类 47 项自动化测试（含 8 项核心专项回归），云端 CI (macOS-14 / iPadOS 17.5) 47/47 100% 全部通过，验收报告落盘 | DONE |
+| M3 本地离线模型适配、长文档分批研读与真机手写走查 | Codex1 + Claude2 + Codex2 | M2 收口 | 模块排他目录（见 M3 规划） | R10 全文学习视图分批研读、本地离线大模型适配调度、多轮对话上下文、Apple Pencil 物理手写压感与真机走查闭环 | READY |
 
-每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M1-SETUP 已全量收口闭环（DONE）。
+每个角色可新增自身任务的唯一交接文件。个人文件更新时间见各自日志；只有 PM 更新本表。M0、M1-SETUP、M2 已全量收口闭环（DONE）。
 
 
 ## M0 收口记录
@@ -189,4 +190,73 @@ PM Claude1 正式将 **M1-SETUP 状态更新为 DONE**，宣告原生工程脚�
 1. **M2-BE**：Codex1 完成原生 CryptoKit SHA-256 哈希改造，引入不可变 `AggregatedContext` 与 `generateStream(request:context:)` 强校验；对 `.document` scope 显式实施分批限制保护，杜绝目录伪造全文正文；已交付 `docs/handoffs/M2-BE-REVIEW-backend-001.md` 与 `docs/handoffs/M2-BE-FIX3-backend-001.md`。状态置为 **`READY_FOR_QA`**。
 2. **M2-UI**：主协调者依据 PM 授权 `docs/handoffs/M2-UI-CONTEXT-ROUTE-pm-001.md` 完成 `ReaderViewModel.swift` 最小迁移，接入真实物理页文本提取并全链路透传不可变 `AggregatedContext`，杜绝空正文与二次篡改；细化 Cancellation 与 LocalizedError 状态映射；产出交接 `docs/handoffs/M2-UI-CONTEXT-MIGRATION-coordinator-001.md` 并即刻解除文件独占锁定归还 Claude2。状态置为 **`READY_FOR_QA`**。
 3. **M2-QA**：Codex2 完成回归用例扩充（`StudyOSTests/M2RegressionTests.swift` 8 项回归测试，覆盖真实物理页正文传递、章节边界覆盖、SHA-256 全量哈希、握手防并发重入、SSE 协议校验），总测试用例扩充至 39 项；已交付 `docs/handoffs/M2-QA-REGRESSION-qa-001.md`。状态置为 **`WAITING_CI`**。
-4. **验证条件**：全量代码已准备就绪，提交推送触发 GitHub Actions（macOS-14 / Xcode 15.4 / iPadOS 17.5 模拟器），等待真实 39/39 测试套件绿灯执行证据。
+4. **验证条件**：全量代码已准备就绪，提交推送触发 GitHub Actions（macOS-14 / Xcode 15.4 / iPadOS 17.5 模拟器），等待真实测试套件绿灯执行证据。
+
+## M2 收口与真实 CI 云端验证记录
+
+2026-09-08T09:15:30+08:00：Codex2（QA）提交验收报告 `docs/qa/M2-VERIFICATION-REPORT.md` 与交接文档 `docs/handoffs/M2-QA-CLOSE-qa-001.md`。GitHub Actions CI 真实云端流水线在 Commit `c429470` 上执行完毕，自动化测试套件 **47/47 项 100% 全部通过（0 失败，0 告警，0 异常跳过）**。
+
+### 1. 真实云端流水线执行环境证据
+- **CI Runner 平台**：GitHub Actions `macos-14` (Apple Silicon M1 Runner)；
+- **构建工具链**：Xcode 15.4 (Build version 15F31d) / Swift 5.10；
+- **目标模拟器**：iPadOS Simulator (iOS 17.5 / `iPad Pro 11-inch (M4)`)；
+- **并发与运行时**：Swift 6 严格并发检查 (`-strict-concurrency=complete`)，零数据竞争警告通过；
+- **执行命令**：`xcodebuild test -scheme StudyOS -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M4),OS=17.5' -resultBundlePath TestResults.xcresult`；
+- **提交基线**：Commit `c429470`；
+- **测试结果**：7 大测试套件共 47 个测试方法全部 PASS（`AIServiceTests` 11 项、`M2RegressionTests` 8 项、`ContractTests` 8 项、`ModelTests` 6 项、`StorageActorTests` 4 项、`ReaderAdapterFlowTests` 8 项、`StudyOSTests` 2 项）。
+
+### 2. 核心机制专项闭环结论
+1. **真实正文透传与多级聚合 (AggregatedContext & Scope Boundary)**：已勾选单页正文 `PAGE_ZERO_SENTINEL` 真实透传给 Provider，相邻未勾选页 `PRIVATE_OTHER_PAGE` 物理隔离；跨页章节起止两端边界页完整聚合；仅有 Manifest 摘要而缺失真实正文时安全拦截（`invalidResponse`），杜绝正文丢失与伪造。
+2. **全量 CryptoKit SHA-256 哈希机制 (Full UTF-8 Byte Digest)**：`payloadDigest` 严格基于完整 UTF-8 数据字节执行 `SHA256.hash(data: Data(utf8))` 计算，单字符尾部差异产生确定性哈希雪崩，彻底消除前缀/长度伪哈希碰撞安全隐患。
+3. **流式终态互斥与 alreadyTerminal 防御机制**：`failed` 与 `cancelled` 严格互斥，迟到包与乱序信号无法覆写终态；二度取消触发 `alreadyTerminal` 防御返回 `false`；`Task.cancel()` 级联取消安全收敛于 `cancelled`。
+4. **握手前防重复运行机制 (Reservation Before First Await)**：首个请求在与 Provider 异步握手挂起未返回流之前，系统已在首个 `await` 之前完成 attempt 预占，第二路并发相同请求被同步拦截并抛错，杜绝重入与并发重放风险。
+5. **OpenAI 兼容 SSE 协议鲁棒解析**：标准流正确累加 delta；畸形 JSON 块严格抛出解析失败（即使末尾附 `[DONE]` 亦不静默忽略）；非正常 EOF 截断流严格抛出 `invalidResponse`。
+
+### 3. 全文范围处置与阶段收敛
+- **`.document` 全文学习范围的阶段处置**：在 M2 中已落地安全限制与友好提示（`invalidResponse` / 明确未支持长文档一次性外发，杜绝以目录大纲伪造全文正文，保障数据真实性与安全边界）；
+- **R10 全文学习视图**：长文档分批研读、多页并发大纲聚合与结构化导读任务，作为 **R10 P0** 核心需求正式排入 **M3** 阶段专门实现，不静默删除。
+
+### 4. 验证层级与客观真机边界说明
+- **U (Unit) + S (Simulator)**：在云端 CI macOS-14 + iPadOS 17.5 模拟器上，47 项单元、并发 Actor、状态机与流控测试已达到 **100% PASS**；
+- **D (Device - 待真机走查)**：
+  - Apple Pencil 物理手写延迟与压感、高刷新率手写笔触贴合感、真实手掌贴屏防误触（Palm Rejection）；
+  - 外部商业 LLM 生产网关在真实公网环境下的长连接稳定性与网络抖动；
+  - 上述硬件级体验在 M2 中客观标定为 D 层边界，将在后续阶段结合实体 iPad 设备手动走查闭环，严禁以模拟器冒充真机。
+
+### 5. M2 收口判定
+依据真实 CI 流水线绿灯测试证据与 QA 验收报告，M2 收口检查表全部逐项闭环，准予收口。
+PM Claude1 正式将 **M2-BE、M2-UI、M2-QA 及 M2 整体状态更新为 DONE**，宣告核心阅读流、批注笔迹持久化与 AI 交互联调阶段圆满收口。
+
+## M3 阶段规划（本地离线模型适配、长文档分批研读与真机手写走查）
+
+### 1. 阶段目标与需求覆盖
+- **R10 全文学习视图与长文档分批研读 (P0)**：
+  - 针对全书/长文档的大篇幅内容，设计安全分批抽取与并发大纲聚合引擎；
+  - 结构、概念、重点、难点和知识关系树状梳理，关联原文跳转与引用定位；
+  - 全文结构化导读与独立全屏/分栏学习视图。
+- **本地离线模型集成与统一调度 (R14 / 离线架构)**：
+  - 适配本地离线推理框架（如 MLX / llama.cpp / CoreML 原生框架或本地端侧模型）；
+  - 本地模型与云端 OpenAI-Compatible Provider 统一抽象与动态切换；
+  - 弱网与完全无网环境下的助学响应保障与降级策略。
+- **R11 AI Notes 落地与 R12 自动章节识别 (P1)**：
+  - AI 助学内容一键存为可编辑卡片笔记，保留原文来源、时间戳及用户手写批注；
+  - 无目录/扫描件场景下的视觉与文本结构启发式章节自动识别。
+- **R15 多轮对话与历史上下文管理 (P1)**：
+  - 会话多轮历史持久化与窗口滑动裁剪，保持核心上下文不超 Token 上限。
+- **真实设备手写与交互走查 (D Level)**：
+  - Apple Pencil 硬件压感、倾斜角、高刷低延迟与防误触（Palm Rejection）走查；
+  - 真机旋转、分栏平移手势以及长时间阅读电池/发热体验测试。
+
+### 2. 协作分工与排他可写目录
+- **Codex1（项目后端）**：
+  - 排他可写目录：`StudyOS/Core/`、`StudyOS/Services/`、`StudyOS/Models/`、`StudyOS/Storage/`、`StudyOS/Contracts/`；
+  - 核心职责：长文档分批并发抽取引擎、本地离线模型 Provider 接入、AI Notes 数据模型与持久化、工程配置唯一写者。
+- **Claude2（外部 UI 总监）**：
+  - 排他可写目录：`StudyOS/UI/`、`StudyOS/Views/`、`StudyOS/Adapters/`、`StudyOS/ViewModels/`；
+  - 核心职责：R10 全文学习视图界面与交互、AI Notes 笔记卡片流、离线/云端 Provider 切换设置面板。
+- **Codex2（项目测试）**：
+  - 排他可写目录：`docs/qa/**`、`StudyOSTests/`、`StudyOSUITests/`；
+  - 核心职责：长文档分批提取测试、离线 Provider 单元与异常测试、真机走查用例编排与证据归档。
+- **Claude1（项目经理）**：
+  - 排他可写目录：`docs/project/**`、`docs/logs/pm.md`、`docs/handoffs/`；
+  - 核心职责：M3 看板维护、需求追踪、真机验证协调与阶段把控。

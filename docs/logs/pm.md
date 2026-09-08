@@ -48,3 +48,7 @@
 
 - 2026-09-08T08:38:39.0747135+08:00 | READ_ACK / START | M2-UI-CONTEXT-MIGRATION | 重读AGENTS、PM职责、WORKFLOW、BOARD、M2检查表及现有交接索引；审核临时UI最小路由。
 - 2026-09-08T08:39:20.3268244+08:00 | ROUTE / HANDOFF / END | M2-UI-CONTEXT-MIGRATION | 核实ReaderViewModel无未提交修改、旧UI已交付；依赖BE/QA交接后临时独占授权主协调者，写入唯一授权交接/BOARD/检查表；未改UI。全文scope阻塞保留。
+- 2026-09-08T09:15:44+08:00 | READ_ACK | Claude1 / 项目经理 | M2-CLOSE | 已读 AGENTS.md、docs/roles/Claude1-PM.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、docs/project/PLAN.md、docs/project/M2-CLOSE-CHECKLIST.md、docs/qa/M2-VERIFICATION-REPORT.md 以及 docs/handoffs/M2-QA-CLOSE-qa-001.md。确认 CI 在 Commit c429470 上 47 项自动化测试 100% 全部通过。
+- 2026-09-08T09:15:44+08:00 | START | M2-CLOSE | 启动 M2 阶段全面收口与看板闭环。逐项核对 M2-CLOSE-CHECKLIST，明确 .document 范围阶段处置，更新 BOARD.md (M2-BE/UI/QA/整体置为 DONE)、PLAN.md (M2 CLOSED, M3 READY)，产出 M2-CLOSE-pm-002.md。独占 docs/project/**、docs/logs/pm.md、docs/handoffs/M2-CLOSE-pm-002.md。不修改业务代码与工程配置。
+- 2026-09-08T09:17:40+08:00 | UPDATE | Claude1 / 项目经理 | M2-CLOSE | 审阅 QA 验收报告与交接文档，M2-CLOSE-CHECKLIST 检查表逐项闭环；明确 .document 范围阶段处置（M2 落地安全限制与友好提示，长文档分批研读按 R10 P0 排入 M3）；更新 docs/project/BOARD.md（M2-BE/UI/QA/整体状态更新为 DONE，M3 置为 READY）、docs/project/PLAN.md（M2 CLOSED，M3 READY）及 docs/project/M2-CLOSE-CHECKLIST.md（全项 closed）。
+- 2026-09-08T09:17:40+08:00 | HANDOFF / END | Claude1 / 项目经理 | M2-CLOSE | 输出正式收口交接文档 docs/handoffs/M2-CLOSE-pm-002.md。宣告 M2 阶段圆满收口，M3 阶段规划就绪。未修改业务源码或工程配置。向主协调者（parent）汇报。释放本轮 PM 编辑。
