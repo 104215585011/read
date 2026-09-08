@@ -19,12 +19,14 @@ public actor FullDocumentStudyService: FullDocumentStudyProtocol {
         self.sandbox = sandbox
         self.provider = provider
         self.metadataEngine = metadataEngine
-        self.encoder = JSONEncoder()
-        self.encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        self.encoder.dateEncodingStrategy = .iso8601
-        self.decoder = JSONDecoder()
-        self.decoder.dateDecodingStrategy = .iso8601
-        self.loadFromDisk()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        self.encoder = encoder
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        self.decoder = decoder
+        self.cachedAnalyses = Self.loadAnalysesFromDisk(sandbox: sandbox, decoder: decoder)
     }
 
     /// 触发全文学习分析
@@ -173,11 +175,15 @@ public actor FullDocumentStudyService: FullDocumentStudyProtocol {
     }
 
     private func loadFromDisk() {
+        self.cachedAnalyses = Self.loadAnalysesFromDisk(sandbox: sandbox, decoder: decoder)
+    }
+
+    private static func loadAnalysesFromDisk(sandbox: LocalSandboxManager, decoder: JSONDecoder) -> [String: FullDocumentAnalysis] {
         let fileURL = sandbox.metadataFileURL(fileName: "full_doc_analysis")
         guard let data = try? Data(contentsOf: fileURL),
               let loaded = try? decoder.decode([String: FullDocumentAnalysis].self, from: data) else {
-            return
+            return [:]
         }
-        self.cachedAnalyses = loaded
+        return loaded
     }
 }

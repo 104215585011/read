@@ -71,7 +71,14 @@ public struct PencilKitOverlayCanvas: UIViewRepresentable {
             }
         }
         
-        public func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+        nonisolated public func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+            MainActor.assumeIsolated {
+                self.handleDrawingChange(canvasView)
+            }
+        }
+        
+        @MainActor
+        private func handleDrawingChange(_ canvasView: PKCanvasView) {
             // 1. 手写抬笔触发防抖定时器 (候选 2 秒防抖，UIREV-03)
             debounceTimer?.invalidate()
             

@@ -10,12 +10,14 @@ public actor AINoteService: AINoteServiceProtocol {
 
     public init(sandbox: LocalSandboxManager = .shared) {
         self.sandbox = sandbox
-        self.encoder = JSONEncoder()
-        self.encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        self.encoder.dateEncodingStrategy = .iso8601
-        self.decoder = JSONDecoder()
-        self.decoder.dateDecodingStrategy = .iso8601
-        self.loadFromDisk()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        self.encoder = encoder
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        self.decoder = decoder
+        self.cards = Self.loadCardsFromDisk(sandbox: sandbox, decoder: decoder)
     }
 
     /// 一键将助学内容固化为卡片笔记
@@ -115,11 +117,15 @@ public actor AINoteService: AINoteServiceProtocol {
     }
 
     private func loadFromDisk() {
+        self.cards = Self.loadCardsFromDisk(sandbox: sandbox, decoder: decoder)
+    }
+
+    private static func loadCardsFromDisk(sandbox: LocalSandboxManager, decoder: JSONDecoder) -> [String: AINoteCard] {
         let fileURL = sandbox.metadataFileURL(fileName: "ai_notes")
         guard let data = try? Data(contentsOf: fileURL),
               let loaded = try? decoder.decode([String: AINoteCard].self, from: data) else {
-            return
+            return [:]
         }
-        self.cards = loaded
+        return loaded
     }
 }
