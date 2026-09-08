@@ -56,6 +56,9 @@ jobs:
 
           if [ -n "$DEVICE_ID" ]; then
             DESTINATION="platform=iOS Simulator,id=$DEVICE_ID"
+            echo "Pre-booting simulator $DEVICE_ID to avoid testmanagerd cold-boot timeout..."
+            xcrun simctl boot "$DEVICE_ID" || true
+            xcrun simctl bootstatus "$DEVICE_ID" -b
           else
             DESTINATION="platform=iOS Simulator,name=iPad (10th generation)"
           fi
@@ -66,6 +69,7 @@ jobs:
             -sdk iphonesimulator \
             -destination "$DESTINATION" \
             -resultBundlePath TestResults.xcresult \
+            -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO
 
       - name: 上传测试结果工件 (xcresult)
