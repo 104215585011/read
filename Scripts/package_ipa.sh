@@ -6,8 +6,12 @@ echo "       StudyOS iPad .ipa Automated Packaging     "
 echo "================================================="
 
 # 1. 检查并安装 xcodegen
+export HOMEBREW_NO_AUTO_UPDATE=1
+export HOMEBREW_NO_INSTALL_CLEANUP=1
+export HOMEBREW_NO_ENV_HINTS=1
+
 if ! command -v xcodegen &> /dev/null; then
-    echo "==> [1/5] xcodegen 未安装，正在通过 Homebrew 安装..."
+    echo "==> [1/5] xcodegen 未安装，正在通过 Homebrew 快速安装 (已跳过全量更新)..."
     brew install xcodegen
 else
     echo "==> [1/5] xcodegen 已安装: $(xcodegen --version)"

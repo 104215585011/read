@@ -12,42 +12,56 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Build & Test on Cloud Mac (iPadOS Simulator)
+  package-ipa:
+    name: 快速打包 StudyOS.ipa (真机安装包)
     runs-on: macos-14
-
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      HOMEBREW_NO_ENV_HINTS: "1"
     steps:
       - name: 检出仓库代码
         uses: actions/checkout@v4
 
-      - name: 选择 Xcode 版本
+      - name: 选择 Xcode 15.4
         run: |
           if [ -d "/Applications/Xcode_15.4.app" ]; then
             sudo xcode-select -s /Applications/Xcode_15.4.app
           fi
           xcodebuild -version
 
-      - name: 查看可用 iPad 模拟器设备
+      - name: 打包 StudyOS.ipa 真机安装包
         run: |
-          xcrun simctl list devices available | grep -E "iPad" || true
+          chmod +x Scripts/package_ipa.sh
+          bash Scripts/package_ipa.sh
 
-      - name: 查看可用 Xcode Schemes 与配置
+      - name: 上传 StudyOS.ipa 安装包 (供 iPad 侧载实测)
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudyOS-iPad-Release-IPA
+          path: StudyOS.ipa
+          retention-days: 14
+
+  simulator-tests:
+    name: 自动化测试套件 (iPadOS 模拟器)
+    runs-on: macos-14
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 选择 Xcode 15.4
+        run: |
+          if [ -d "/Applications/Xcode_15.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_15.4.app
+          fi
+          xcodebuild -version
+
+      - name: 查看可用 Xcode Schemes
         run: |
           xcodebuild -list
 
-      - name: 编译 StudyOS (iOS Simulator 目标)
-        run: |
-          SCHEME=$(xcodebuild -list -json | jq -r '.project.schemes[0] // .workspace.schemes[0] // "StudyOS"')
-          echo "Selected Scheme for Build: $SCHEME"
-          xcodebuild build \
-            -scheme "$SCHEME" \
-            -sdk iphonesimulator \
-            -destination "generic/platform=iOS Simulator" \
-            CODE_SIGNING_ALLOWED=NO
-
       - name: 执行自动化测试套件 (iPad 模拟器运行)
         run: |
-          # 自动精确提取系统中首个可用 iPad 模拟器的 UUID
           DEVICE_ID=$(xcrun simctl list devices available | grep -E "iPad" | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -n 1)
           echo "Selected Test Device UDID: $DEVICE_ID"
 
@@ -79,15 +93,3 @@ jobs:
           name: iPad-Test-Results
           path: TestResults.xcresult
           retention-days: 7
-
-      - name: 打包 StudyOS.ipa 真机安装包
-        run: |
-          chmod +x Scripts/package_ipa.sh
-          bash Scripts/package_ipa.sh
-
-      - name: 上传 StudyOS.ipa 安装包 (供 iPad 侧载实测)
-        uses: actions/upload-artifact@v4
-        with:
-          name: StudyOS-iPad-Release-IPA
-          path: StudyOS.ipa
-          retention-days: 14
