@@ -49,11 +49,16 @@ fi
 echo "找到构建产物 App Bundle: $APP_BUNDLE_PATH"
 cp -r "$APP_BUNDLE_PATH" Payload/
 
-# 验证可执行文件
+# 确保复制完全解析好字面量宏的 Info.plist
+cp Config/Info.plist Payload/StudyOS.app/Info.plist
+plutil -lint Payload/StudyOS.app/Info.plist
+
+# 验证并赋权可执行文件
 if [ ! -f "Payload/StudyOS.app/StudyOS" ]; then
     echo "错误：Payload/StudyOS.app 内缺少 StudyOS 二进制执行文件！"
     exit 1
 fi
+chmod +x Payload/StudyOS.app/StudyOS
 
 # 压缩为标准 IPA
 zip -r -q StudyOS.ipa Payload
