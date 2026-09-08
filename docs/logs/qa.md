@@ -192,7 +192,22 @@
 4. 错误 4（SourceAnchor 缺少必填参数，行 749）：补齐必填参数 documentRevision: 1；
 5. 全量代码符合纯原生 Swift 5.9+ / XCTest 规范，严格遵循 Swift Concurrency 线程与并发安全；
 6. 交付交接文档 docs/handoffs/M3-QA-FIX3-qa-001.md。因 Windows 宿主无 Xcode/swiftc 原生环境，按 QA 规范客观标为 NOT_RUN。已向主协调者汇报。释放本轮 QA 专有写入权限。
+## 2026-09-08T13:14:00+08:00 READ_ACK / ACCEPTED / START · M3-QA-FIX4
+按照 WORKFLOW 规范记录真实系统时间戳。已确认接收主协调者修复 StudyOSTests/M3BackendTests.swift 中 SourceAnchor 形参顺序编译报错的指令。
+已读取并确认：AGENTS.md、docs/roles/Codex2-QA.md、docs/collaboration/WORKFLOW.md、docs/project/BOARD.md、SourceAnchor.swift 及 M3BackendTests.swift。
+本轮任务：
+1. 修复 StudyOSTests/M3BackendTests.swift 中 SourceAnchor 初始化参数顺序：
+   - 报错：行 530 error: argument 'regions' must precede argument 'paragraphID'；
+   - 根因：SourceAnchor init 形参定义顺序为 (documentID:documentRevision:pageIndex0:regions:paragraphID:quote:textRevision:precision:availability:)，regions 在 paragraphID 之前；
+   - 修复：调整行 524-533 调用参数顺序，将 regions 置于 paragraphID 之前；
+2. 确保代码符合纯原生 Swift 5.9+ / XCTest 规范，严格遵循 Swift Concurrency 线程与并发安全；
+3. 交付交接文档 docs/handoffs/M3-QA-FIX4-qa-001.md 并更新 docs/logs/qa.md；
+4. 严格遵守排他写入规则：仅修改专有测试文件 StudyOSTests/M3BackendTests.swift、docs/qa/**、docs/logs/qa.md 与 docs/handoffs/M3-QA-FIX4-*.md，严禁修改业务源码或工程配置；向主协调者汇报。
 
-
+## 2026-09-08T13:16:00+08:00 HANDOFF / END · M3-QA-FIX4
+完成 StudyOSTests/M3BackendTests.swift 中 SourceAnchor 形参顺序编译报错精准修复：
+1. 错误（argument 'regions' must precede argument 'paragraphID'，行 524-533）：将实参 regions 调整至 paragraphID 之前，完全吻合 SourceAnchor.init(documentID:documentRevision:pageIndex0:regions:paragraphID:quote:textRevision:precision:availability:) 签名声明顺序；
+2. 全量代码符合纯原生 Swift 5.9+ / XCTest 规范，严格遵循 Swift Concurrency 线程与并发安全；
+3. 交付交接文档 docs/handoffs/M3-QA-FIX4-qa-001.md。因 Windows 宿主无 Xcode/swiftc 原生环境，按 QA 规范客观标为 NOT_RUN。已向主协调者汇报。释放本轮 QA 专有写入权限。
 
 

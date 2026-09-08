@@ -525,9 +525,9 @@ final class AINoteServiceTests: XCTestCase {
             documentID: "doc_math_analysis",
             documentRevision: 2,
             pageIndex0: 15,
+            regions: [CodableRect(x: 100, y: 200, width: 350, height: 45)],
             paragraphID: "para_math_15_2",
             quote: "设函数 f 在区间 [a, b] 上连续且单调递增...",
-            regions: [CodableRect(x: 100, y: 200, width: 350, height: 45)],
             precision: .region,
             availability: .active
         )
